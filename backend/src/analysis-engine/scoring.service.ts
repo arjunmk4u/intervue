@@ -25,9 +25,9 @@ export function calculateOverallScore(
   // Aggregate Speech
   let latencyAvg = 0, speechRateAvg = 0;
 
-  const allStrengths = new Set<string>();
-  const allWeaknesses = new Set<string>();
   const allSuggestions = new Set<string>();
+  const highSignalStrengths: string[] = [];
+  const highSignalWeaknesses: string[] = [];
 
   evaluations.forEach(ev => {
     clarityAvg += ev.evaluation.scores.clarity;
@@ -44,8 +44,6 @@ export function calculateOverallScore(
     latencyAvg += ev.speech.latency;
     speechRateAvg += ev.speech.speechRate;
 
-    ev.evaluation.strengths.forEach(s => allStrengths.add(s));
-    ev.evaluation.weaknesses.forEach(w => allWeaknesses.add(w));
     ev.evaluation.suggestions.forEach(s => allSuggestions.add(s));
   });
 
@@ -67,7 +65,7 @@ export function calculateOverallScore(
   const aggregateSpeech = {
     latency: parseFloat((latencyAvg / numEvals).toFixed(1)),
     speechRate: parseFloat((speechRateAvg / numEvals).toFixed(1)),
-    confidenceSignal: 'high' as 'high' | 'medium' | 'low'
+    confidenceSignal: deriveConfidenceSignal(confidenceAvg / numEvals, speechRateAvg / numEvals) as 'high' | 'medium' | 'low'
   };
 
   // Base score on semantic (60%) + behavioral (30%) + speech confidence (10%)
@@ -87,9 +85,13 @@ export function calculateOverallScore(
   if(rawScore >= 85) percentile = Math.min(99, rawScore + 5);
   else if (rawScore < 60) percentile = rawScore - 10;
 
-  // Filter down to the top 3-4 items for the final report to avoid clutter
-  const topStrengths = Array.from(allStrengths).slice(0, 4);
-  const topWeaknesses = Array.from(allWeaknesses).slice(0, 3);
+  collectAggregateInsights(aggregateEvaluation, aggregateBehavioral, highSignalStrengths, highSignalWeaknesses);
+
+  const fallbackStrengths = evaluations.flatMap((ev) => ev.evaluation.strengths);
+  const fallbackWeaknesses = evaluations.flatMap((ev) => ev.evaluation.weaknesses);
+
+  const topStrengths = uniqueStrings([...highSignalStrengths, ...fallbackStrengths]).slice(0, 4);
+  const topWeaknesses = uniqueStrings([...highSignalWeaknesses, ...fallbackWeaknesses]).slice(0, 3);
   const topSuggestions = Array.from(allSuggestions).slice(0, 3);
 
   return {
@@ -102,4 +104,35 @@ export function calculateOverallScore(
     weaknesses: topWeaknesses,
     suggestions: topSuggestions
   };
+}
+
+function collectAggregateInsights(
+  evaluation: FinalReport['metrics'],
+  behavioral: FinalReport['behavioral'],
+  strengths: string[],
+  weaknesses: string[]
+) {
+  if (evaluation.clarity >= 7.5) strengths.push('Your answers were clear and easy to follow.');
+  if (evaluation.structure >= 7.5) strengths.push('You structured responses in a disciplined way.');
+  if (evaluation.relevance >= 7.5) strengths.push('You stayed aligned with what the question was asking.');
+  if (evaluation.depth >= 7.5) strengths.push('You added meaningful detail instead of staying superficial.');
+  if (behavioral.communication >= 7.5) strengths.push('You communicated ideas in a calm, professional manner.');
+  if (behavioral.problem_solving >= 7.5) strengths.push('You showed credible problem-solving only when concrete examples supported it.');
+
+  if (evaluation.clarity <= 5.5) weaknesses.push('Some answers needed clearer wording and sharper takeaways.');
+  if (evaluation.structure <= 5.5) weaknesses.push('Response structure was inconsistent and could be more organized.');
+  if (evaluation.depth <= 5.5) weaknesses.push('Several answers needed more depth, specifics, or technical detail.');
+  if (evaluation.relevance <= 5.5) weaknesses.push('A few responses drifted away from the core question.');
+  if (behavioral.communication <= 5.5) weaknesses.push('Communication felt less polished than it could be under interview pressure.');
+  if (behavioral.problem_solving <= 4.5) weaknesses.push('Problem-solving evidence was limited or not clearly demonstrated in your examples.');
+}
+
+function uniqueStrings(values: string[]): string[] {
+  return Array.from(new Set(values.filter(Boolean)));
+}
+
+function deriveConfidenceSignal(confidenceScore: number, speechRate: number): 'high' | 'medium' | 'low' {
+  if (confidenceScore >= 7.5 && speechRate >= 110 && speechRate <= 165) return 'high';
+  if (confidenceScore >= 5.5) return 'medium';
+  return 'low';
 }

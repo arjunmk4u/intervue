@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { Constants, EdgeTTS } from '@andresaya/edge-tts';
 
-const VOICE_OUTPUT_DIR = path.join(process.cwd(), 'public', 'voice');
+const VOICE_OUTPUT_DIR = path.resolve(__dirname, '..', '..', 'public', 'voice');
 const DEFAULT_VOICE = 'en-US-JennyNeural';
 
 export async function generateSpeech(text: string): Promise<string> {
@@ -24,6 +24,11 @@ export async function generateSpeech(text: string): Promise<string> {
   return `/voice/${path.basename(savedFilePath)}`;
 }
 
+export async function readGeneratedSpeech(audioUrl: string): Promise<Buffer> {
+  const filePath = path.join(VOICE_OUTPUT_DIR, path.basename(audioUrl));
+  return fs.promises.readFile(filePath);
+}
+
 export function humanizeText(text: string): string {
   const normalized = text.replace(/\s+/g, ' ').trim();
   const conversational = rewriteForConversation(normalized);
@@ -31,10 +36,9 @@ export function humanizeText(text: string): string {
 
   return segmented
     .replace(/,\s*/g, ', ')
-    .replace(/\.\s*/g, '.\n')
-    .replace(/\?\s*/g, '?\n')
-    .replace(/!\s*/g, '!\n')
-    .replace(/\n{2,}/g, '\n')
+    .replace(/\.\s*/g, '. ')
+    .replace(/\?\s*/g, '? ')
+    .replace(/!\s*/g, '! ')
     .trim();
 }
 

@@ -23,7 +23,7 @@ mongoose.connect(MONGODB_URI).then(() => {
 
 app.use(cors());
 app.use(express.json());
-app.use('/voice', express.static(path.join(process.cwd(), 'public', 'voice')));
+app.use('/voice', express.static(path.resolve(__dirname, '..', 'public', 'voice')));
 
 app.use('/api', interviewRoutes);
 app.use('/api/transcribe', transcribeRoutes);

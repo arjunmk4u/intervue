@@ -20,18 +20,15 @@ export default function InterviewRoom() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
-  const [voiceNotice, setVoiceNotice] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState('');
   const [phase, setPhase] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const activeAudioRef = useRef<HTMLAudioElement | null>(null);
-  const pendingAudioRef = useRef<{ audio: HTMLAudioElement; url: string } | null>(null);
-  const interactionRetryHandlerRef = useRef<(() => void) | null>(null);
-  const initialSpeakRef = useRef<boolean>(false);
   const isMountedRef = useRef<boolean>(true);
-  const [coachingTip, setCoachingTip] = useState<string | null>(null);
-  const [pulseMetrics, setPulseMetrics] = useState<{ latency: number; speechRate: number; confidenceSignal: string } | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const interactionRetryHandlerRef = useRef<(() => void) | null>(null);
+  const playRequestIdRef = useRef(0);
+  const initialSpeakRef = useRef<boolean>(false);
 
   const [isRecording, setIsRecording] = useState(false);
   const [isConverting, setIsConverting] = useState(false);
@@ -45,28 +42,41 @@ export default function InterviewRoom() {
     interactionRetryHandlerRef.current = null;
   };
 
-  const clearPendingAudio = () => {
-    if (!pendingAudioRef.current) return;
+  const stopCurrentAudio = () => {
+    const audio = audioRef.current;
+    if (!audio) return;
 
-    pendingAudioRef.current.audio.pause();
-    URL.revokeObjectURL(pendingAudioRef.current.url);
-    pendingAudioRef.current = null;
+    audio.pause();
+    audio.removeAttribute('src');
+    audio.load();
+    audio.currentTime = 0;
   };
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   const speakResponse = async (text: string): Promise<void> => {
     if (!isMountedRef.current) return;
 
-    unregisterPlaybackRetry();
-    clearPendingAudio();
+    playRequestIdRef.current += 1;
+    const requestId = playRequestIdRef.current;
 
-    if (activeAudioRef.current) {
-      activeAudioRef.current.pause();
-      activeAudioRef.current = null;
+    unregisterPlaybackRetry();
+    stopCurrentAudio();
+
+    const audio = audioRef.current;
+    if (!audio) {
+      console.error('[Voice] Audio element not found');
+      return;
     }
 
     try {
+      console.log(`[Voice] Requesting speech for: "${text.slice(0, 30)}..." (ID: ${requestId})`);
       setIsSpeaking(true);
-      setVoiceNotice(null);
 
       const res = await fetch(`${BACKEND_URL}/api/voice/speak`, {
         method: 'POST',
@@ -74,73 +84,63 @@ export default function InterviewRoom() {
         body: JSON.stringify({ text }),
       });
 
-      const data = await res.json() as { audioUrl?: string | null; fallback?: boolean };
-
-      if (!res.ok || !data.audioUrl) {
-        setIsSpeaking(false);
-        setVoiceNotice('Voice output is temporarily unavailable. Interview will continue without audio.');
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({ error: 'Unknown error' }));
+        console.error('[Voice] Backend error:', errorData);
+        if (requestId === playRequestIdRef.current) {
+          setIsSpeaking(false);
+        }
         return;
       }
 
-      const audioUrl = data.audioUrl.startsWith('http') ? data.audioUrl : `${BACKEND_URL}${data.audioUrl}`;
-      const audio = new Audio(audioUrl);
-      activeAudioRef.current = audio;
+      const data = await res.json() as { audioUrl?: string | null; audioBase64?: string | null; mimeType?: string };
+      
+      if (!isMountedRef.current || requestId !== playRequestIdRef.current) {
+        console.warn(`[Voice] Request ${requestId} superseded or component unmounted.`);
+        return;
+      }
 
-      audio.onended = () => {
+      if (!data.audioUrl) {
+        console.error('[Voice] No audio URL received');
         setIsSpeaking(false);
-        if (activeAudioRef.current === audio) {
-          activeAudioRef.current = null;
-        }
-      };
+        return;
+      }
 
-      audio.onerror = () => {
-        setIsSpeaking(false);
-        setVoiceNotice('Voice playback failed. Interview will continue without audio.');
-        if (activeAudioRef.current === audio) {
-          activeAudioRef.current = null;
-        }
-      };
+      const sourceUrl = `${BACKEND_URL}${data.audioUrl}`;
+      console.log(`[Voice] Playing from URL: ${sourceUrl} (ID: ${requestId})`);
+
+      audio.src = sourceUrl;
+      audio.currentTime = 0;
+      audio.load();
 
       try {
         await audio.play();
       } catch (playError) {
         if (playError instanceof DOMException && playError.name === 'NotAllowedError') {
-          pendingAudioRef.current = { audio, url: audioUrl };
-
-          const retryPlayback = () => {
-            const pending = pendingAudioRef.current;
-            unregisterPlaybackRetry();
-
-            if (!pending || !isMountedRef.current) return;
-
-            pending.audio.play().then(() => {
-              pendingAudioRef.current = null;
-            }).catch((error) => {
-              console.error('[Voice] Playback retry failed:', error);
-              setIsSpeaking(false);
-              setVoiceNotice('Voice playback was blocked by the browser. Interview will continue without audio.');
-            });
-          };
-
-          interactionRetryHandlerRef.current = retryPlayback;
-          window.addEventListener('pointerdown', retryPlayback);
-          window.addEventListener('keydown', retryPlayback);
+          console.warn('[Voice] Autoplay blocked, waiting for interaction.');
+          // In a real app we might show a "Click to Listen" button
+          // For now, we'll just log it.
           return;
         }
 
+        console.error('[Voice] Audio play error:', playError);
         throw playError;
       }
     } catch (error) {
       console.error('[Voice] Speak request failed:', error);
-      setIsSpeaking(false);
-      setVoiceNotice('Voice service is unavailable right now. Interview will continue without audio.');
+      if (requestId === playRequestIdRef.current) {
+        setIsSpeaking(false);
+      }
     }
   };
 
   useEffect(() => {
+    isMountedRef.current = true;
     const storedSession = localStorage.getItem('sessionId');
     const firstQuestion = localStorage.getItem('firstQuestion');
     const storedPhase = localStorage.getItem('currentPhase');
+
+    console.log('[Interview] Initializing session...', { storedSession, hasFirstQuestion: !!firstQuestion });
 
     if (!storedSession) {
       router.push('/');
@@ -159,22 +159,18 @@ export default function InterviewRoom() {
     return () => {
       isMountedRef.current = false;
       unregisterPlaybackRetry();
-      clearPendingAudio();
 
       if (mediaRecorder) {
         mediaRecorder.stream.getTracks().forEach((track) => track.stop());
       }
 
-      if (activeAudioRef.current) {
-        activeAudioRef.current.pause();
-        activeAudioRef.current = null;
-      }
+      stopCurrentAudio();
     };
   }, [router]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, isSpeaking]);
+  }, [messages, loading]);
 
   const toggleRecording = async () => {
     if (isRecording && mediaRecorder) {
@@ -207,8 +203,6 @@ export default function InterviewRoom() {
           const data = await res.json();
           if (data.transcript) {
             void handleVoiceSubmit(data.transcript);
-          } else {
-            console.warn('Deepgram returned empty transcript');
           }
         } catch (err) {
           console.error('Transcription error:', err);
@@ -231,7 +225,6 @@ export default function InterviewRoom() {
 
     setMessages((prev) => [...prev, { role: 'user', content: transcript }]);
     setLoading(true);
-    setCoachingTip(null);
 
     const currentQuestion = messages.length > 0
       ? [...messages].reverse().find((message) => message.role === 'assistant')?.content || ''
@@ -256,9 +249,7 @@ export default function InterviewRoom() {
       if (!resNext.ok) throw new Error(data.error || 'Failed to get response');
 
       if (resAnalyze.ok) {
-        const analyzeData = await resAnalyze.json();
-        if (analyzeData.tip) setCoachingTip(analyzeData.tip);
-        if (analyzeData.speech) setPulseMetrics(analyzeData.speech);
+        await resAnalyze.json();
       }
 
       setMessages((prev) => [...prev, { role: 'assistant', content: data.question }]);
@@ -270,6 +261,7 @@ export default function InterviewRoom() {
     } catch (error) {
       console.error(error);
       setMessages((prev) => [...prev, { role: 'system', content: 'Connection error while fetching AI response.' }]);
+      setIsSpeaking(false);
     } finally {
       setLoading(false);
     }
@@ -296,12 +288,6 @@ export default function InterviewRoom() {
 
       <div className="flex-1 w-full max-w-4xl flex flex-col relative h-full">
         <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-6 scroll-smooth pb-40">
-          {voiceNotice && (
-            <div className="mx-auto w-full max-w-[85%] md:max-w-[75%] rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-200 shadow-[0_10px_30px_rgba(0,0,0,0.2)]">
-              {voiceNotice}
-            </div>
-          )}
-
           {messages.map((msg, idx) => (
             <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-in slide-in-from-bottom-2 fade-in duration-300`}>
               <div
@@ -331,59 +317,6 @@ export default function InterviewRoom() {
             </div>
           )}
 
-          {isSpeaking && (
-            <div className="flex justify-start animate-in fade-in duration-300">
-              <div className="bg-cyan-500/10 border border-cyan-400/20 rounded-2xl rounded-tl-none p-5 flex items-center gap-3 min-w-[180px] shadow-xl backdrop-blur-sm">
-                <div className="flex gap-1">
-                  <div className="w-2 h-4 rounded-full bg-cyan-300 animate-[pulse_900ms_infinite]"></div>
-                  <div className="w-2 h-6 rounded-full bg-cyan-400 animate-[pulse_900ms_infinite_150ms]"></div>
-                  <div className="w-2 h-3 rounded-full bg-cyan-200 animate-[pulse_900ms_infinite_300ms]"></div>
-                </div>
-                <span className="text-sm font-semibold text-cyan-100">AI is speaking...</span>
-              </div>
-            </div>
-          )}
-
-          {(coachingTip || pulseMetrics) && !loading && (
-            <div className="flex flex-col items-center gap-4 animate-in slide-in-from-bottom-2 duration-500 mt-4">
-              {pulseMetrics && (
-                <div className="w-full max-w-[85%] md:max-w-[75%] bg-[#1D2026]/80 border border-[#464555]/20 p-4 rounded-[2rem] shadow-[0_10px_30px_rgba(0,0,0,0.3)] backdrop-blur-xl flex justify-between items-center relative overflow-hidden">
-                  <div className="flex items-center gap-3 z-10">
-                    <div className="flex items-end gap-1 h-6">
-                      <span className="w-1.5 h-3 bg-[#89CEFF] rounded-full animate-pulse blur-[1px]"></span>
-                      <span className="w-1.5 h-5 bg-[#89CEFF] rounded-full animate-[pulse_1s_infinite_100ms] blur-[1px]"></span>
-                      <span className="w-1.5 h-4 bg-[#89CEFF] rounded-full animate-[pulse_1s_infinite_200ms] blur-[1px]"></span>
-                      <span className="w-1.5 h-6 bg-[#89CEFF] rounded-full animate-[pulse_1s_infinite_300ms] blur-[0.5px]"></span>
-                      <span className="w-1.5 h-3 bg-[#89CEFF] rounded-full animate-[pulse_1s_infinite_400ms] blur-[1px]"></span>
-                    </div>
-                    <span className="text-[10px] font-bold text-[#89CEFF] tracking-widest uppercase ml-2">Pulse Monitor</span>
-                  </div>
-                  <div className="flex gap-4 z-10 text-xs font-mono text-[#E1E2EB]/80">
-                    <span className="px-2 py-1 bg-[#0B0E14] rounded-md border border-[#464555]/30">Lat: {pulseMetrics.latency}s</span>
-                    <span className="px-2 py-1 bg-[#0B0E14] rounded-md border border-[#464555]/30">Spd: {pulseMetrics.speechRate}wpm</span>
-                    <span className="px-2 py-1 bg-[#0B0E14] rounded-md border border-[#464555]/30 uppercase text-[10px] flex items-center">
-                      Conf: {pulseMetrics.confidenceSignal}
-                    </span>
-                  </div>
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[#89CEFF]/5 to-transparent z-0"></div>
-                </div>
-              )}
-
-              {coachingTip && (
-                <div className="w-full max-w-[85%] md:max-w-[75%] bg-[#1D2026] border border-[#464555]/15 p-5 rounded-[2rem] shadow-[0_20px_40px_rgba(0,0,0,0.4)] backdrop-blur-md relative overflow-hidden">
-                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#2FD9F4] opacity-80 shadow-[0_0_10px_#2FD9F4]"></div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <svg className="w-4 h-4 text-[#2FD9F4]" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M11 3a1 1 0 10-2 0v1a1 1 0 102 0V3zM15.657 5.757a1 1 0 00-1.414-1.414l-.707.707a1 1 0 001.414 1.414l.707-.707zM18 10a1 1 0 01-1 1h-1a1 1 0 110-2h1a1 1 0 011 1zM5.05 6.464A1 1 0 106.464 5.05l-.707-.707a1 1 0 00-1.414 1.414l.707.707zM5 10a1 1 0 01-1 1H3a1 1 0 110-2h1a1 1 0 011 1zM8 16v-1h4v1a2 2 0 11-4 0zM12 14c.015-.34.208-.646.477-.859a4 4 0 10-4.954 0c.27.213.462.519.476.859h4.002z" />
-                    </svg>
-                    <span className="text-xs font-bold text-[#E1E2EB] tracking-widest uppercase">AI Coaching Tip</span>
-                  </div>
-                  <p className="text-sm text-[#E1E2EB]/80 leading-relaxed">{coachingTip}</p>
-                </div>
-              )}
-            </div>
-          )}
-
           <div ref={messagesEndRef} className="h-10" />
         </div>
 
@@ -409,11 +342,38 @@ export default function InterviewRoom() {
               )}
             </button>
             <span className="text-sm font-bold text-slate-400 tracking-widest uppercase bg-slate-900/80 px-4 py-1.5 rounded-full backdrop-blur border border-slate-700 shadow-lg">
-              {isSpeaking ? 'Wait for the interviewer...' : isRecording ? 'Listening... Click to Send' : 'Click to Speak'}
+              {isSpeaking ? 'Interviewer speaking...' : isRecording ? 'Listening... Click to Send' : 'Click to Speak'}
             </span>
           </div>
         </div>
       </div>
+
+      <audio
+        ref={audioRef}
+        className="hidden"
+        onEnded={() => {
+          console.log('[Voice] Audio playback ended');
+          setIsSpeaking(false);
+        }}
+        onError={(e) => {
+          console.error('[Voice] Audio element error:', e);
+          setIsSpeaking(false);
+        }}
+        onLoadedMetadata={(e) => {
+          console.log(`[Voice] Audio metadata loaded, duration: ${e.currentTarget.duration}s`);
+        }}
+      />
     </div>
   );
+}
+
+function base64ToBlob(base64: string, mimeType: string): Blob {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+
+  for (let i = 0; i < binary.length; i += 1) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+
+  return new Blob([bytes], { type: mimeType });
 }
