@@ -1,8 +1,8 @@
 import { ISession } from '../models/Session';
 import { IResumeData } from '../models/Resume';
 
-export function buildSystemPrompt(session: ISession, resumeData: IResumeData | null): string {
-  const { domain, phase, difficulty, history } = session;
+export function buildSystemPrompt(session: any, resumeData: IResumeData | null): string {
+  const { domain, phase, experienceLevel, history } = session;
 
   let phaseInstructions = '';
   switch (phase) {
@@ -15,7 +15,7 @@ export function buildSystemPrompt(session: ISession, resumeData: IResumeData | n
 2. Skill-Based Question Injection: Ensure you ask at least 1 question per major skill listed.`;
       break;
     case 'technical':
-      phaseInstructions = `Ask a technical interview question suitable for a ${domain} role at a ${difficulty} difficulty level. Evaluate problem-solving skills.
+      phaseInstructions = `Ask a technical interview question suitable for a ${domain} role targeted at a candidate with ${experienceLevel} experience. Assess skills accordingly (foundational for Freshers, complex architecture/trade-offs for Seniors).
 1. Multi-Level Questioning Logic: Progress through Basic understanding -> Deep technical explanation -> Edge case scenario -> Trade-off/alternative.
 2. Cross-Domain Linking: Try to connect different concepts (e.g., connect ML with Backend, Frontend with Scaling).
 3. Problem-Solving: Include API design, System design basics, or Optimization questions.`;
@@ -44,6 +44,7 @@ Select from these topics (ensure variety):
 Your demeanor should be professional, insightful, and natural. 
 
 Current Interview Phase: ${phase.toUpperCase()}
+Target Experience Level: ${experienceLevel} (Cross-reference strictly with candidate resume provided below. If resume lacks experience, strictly assume Fresher.)
 Phase Instructions: ${phaseInstructions}
 
 ${resumeContext}

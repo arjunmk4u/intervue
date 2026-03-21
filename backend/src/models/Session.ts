@@ -12,8 +12,9 @@ export interface ISession extends Document {
   resumeId?: mongoose.Types.ObjectId;
   phase: 'intro' | 'resume' | 'technical' | 'behavioral' | 'situational' | 'closing';
   questionIndex: number;
-  difficulty: 'easy' | 'medium' | 'hard';
+  experienceLevel: string;
   history: IMessage[];
+  evaluations?: any[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -34,8 +35,9 @@ const SessionSchema = new Schema<ISession>({
     default: 'intro' 
   },
   questionIndex: { type: Number, default: 0 },
-  difficulty: { type: String, enum: ['easy', 'medium', 'hard'], default: 'medium' },
-  history: [MessageSchema]
+  experienceLevel: { type: String, default: 'Fresher' },
+  history: [MessageSchema],
+  evaluations: { type: [Schema.Types.Mixed], default: [] }
 }, { timestamps: true });
 
 export default mongoose.model<ISession>('Session', SessionSchema);

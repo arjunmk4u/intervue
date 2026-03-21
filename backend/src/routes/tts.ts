@@ -3,27 +3,31 @@ import { generateGeminiSpeech } from '../services/gemini-tts-service';
 
 const router = express.Router();
 
-// POST /api/tts  { text: string }
-// Returns audio/wav from Gemini TTS (Aoede voice)
 router.post('/', async (req, res) => {
   const { text } = req.body;
   if (!text) return res.status(400).json({ error: 'text is required' });
 
   try {
-    const audioBuffer = await generateGeminiSpeech(text);
+    const ttsResult = await generateGeminiSpeech(text);
 
-    if (!audioBuffer) {
-      // Gemini not configured or failed — client falls back to Web Speech API
-      return res.status(503).json({ error: 'TTS unavailable', fallback: true });
+    if (!ttsResult.ok) {
+      return res.status(ttsResult.statusCode || 503).json({
+        error: 'TTS unavailable',
+        fallback: true,
+        reason: ttsResult.reason,
+        message: ttsResult.message,
+        retryAfterMs: ttsResult.retryAfterMs,
+        model: ttsResult.model,
+      });
     }
 
     res.set({
       'Content-Type': 'audio/wav',
-      'Content-Length': audioBuffer.length,
+      'Content-Length': ttsResult.audioBuffer.length,
       'Cache-Control': 'no-cache',
     });
 
-    res.send(audioBuffer);
+    res.send(ttsResult.audioBuffer);
   } catch (error) {
     console.error('[TTS Route] Error:', error);
     res.status(503).json({ error: 'TTS service failed', fallback: true });

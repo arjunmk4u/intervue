@@ -6,6 +6,10 @@ import Resume from '../models/Resume';
 import { parsePdfToText, extractResumeData } from '../services/resume-parser';
 import { generateNextQuestion } from '../services/gpt-service';
 import { advancePhaseIfNeeded } from '../interview-engine/phase-controller';
+import { evaluateResponse } from '../analysis-engine/evaluation.service';
+import { analyzeBehavioral, generateCoachingTip } from '../analysis-engine/behavioral.service';
+import { analyzeSpeech } from '../analysis-engine/speech.service';
+import { calculateOverallScore } from '../analysis-engine/scoring.service';
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
@@ -44,13 +48,13 @@ router.post('/upload-resume', upload.single('resume'), async (req, res) => {
 
 router.post('/start-session', async (req, res) => {
   try {
-    const { domain, difficulty = 'medium' } = req.body;
+    const { domain, experienceLevel = 'Fresher' } = req.body;
     const sessionId = crypto.randomUUID();
 
     const session = new Session({
       sessionId,
       domain,
-      difficulty,
+      experienceLevel,
       phase: 'intro',
       questionIndex: 0,
       history: []
@@ -123,6 +127,54 @@ router.post('/next-question', async (req, res) => {
   } catch (error) {
     console.error('Next question error:', error);
     res.status(500).json({ error: 'Failed to get next question' });
+  }
+});
+
+router.post('/analyze-response', async (req, res) => {
+  try {
+    const { sessionId, question, answer, audioMeta } = req.body;
+    
+    if (!sessionId || !question || !answer) {
+      return res.status(400).json({ error: 'sessionId, question, and answer required' });
+    }
+
+    const session = await Session.findOne({ sessionId });
+    if (!session) return res.status(404).json({ error: 'Session not found' });
+
+    // Run parallel analysis
+    const [evaluation, behavioral, tip] = await Promise.all([
+      evaluateResponse(question, answer),
+      analyzeBehavioral(question, answer),
+      generateCoachingTip(question, answer)
+    ]);
+
+    const speech = analyzeSpeech(answer, audioMeta);
+
+    // Save to session
+    if (!session.evaluations) session.evaluations = [];
+    session.evaluations.push({ evaluation, behavioral, speech });
+    await session.save();
+
+    res.json({ evaluation, behavioral, speech, tip });
+  } catch (error) {
+    console.error('Analyze response error:', error);
+    res.status(500).json({ error: 'Failed to analyze response' });
+  }
+});
+
+router.get('/final-report', async (req, res) => {
+  try {
+    const { sessionId } = req.query;
+    if (!sessionId) return res.status(400).json({ error: 'sessionId required' });
+
+    const session = await Session.findOne({ sessionId: sessionId as string });
+    if (!session) return res.status(404).json({ error: 'Session not found' });
+
+    const report = calculateOverallScore(session.evaluations || []);
+    res.json(report);
+  } catch (error) {
+    console.error('Final report error:', error);
+    res.status(500).json({ error: 'Failed to generate final report' });
   }
 });
 

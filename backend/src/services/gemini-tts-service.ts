@@ -1,21 +1,36 @@
 import { env } from '../config/env';
 
-// Gemini TTS voice — "Aoede" is warm, natural, female (closest to Gemini assistant voice)
-// Other options: Kore (firm female), Charon (deep male), Puck (upbeat male), Fenrir (energetic male)
 const VOICE_NAME = 'Aoede';
-
-// Gemini TTS model — free tier, fast, high quality
 const TTS_MODEL = 'gemini-2.5-flash-preview-tts';
 
-/**
- * Generate speech via Gemini TTS API.
- * Returns a WAV audio Buffer (PCM → WAV conversion included).
- */
-export async function generateGeminiSpeech(text: string): Promise<Buffer | null> {
+type GeminiTtsSuccess = {
+  ok: true;
+  audioBuffer: Buffer;
+  model: string;
+};
+
+type GeminiTtsFailure = {
+  ok: false;
+  model: string;
+  reason: 'no_api_key' | 'quota_exhausted' | 'no_audio' | 'request_failed';
+  message: string;
+  retryAfterMs?: number;
+  statusCode?: number;
+};
+
+export type GeminiTtsResult = GeminiTtsSuccess | GeminiTtsFailure;
+
+export async function generateGeminiSpeech(text: string): Promise<GeminiTtsResult> {
   const apiKey = env.GEMINI_API_KEY;
   if (!apiKey) {
     console.warn('[Gemini TTS] No API key configured');
-    return null;
+    return {
+      ok: false,
+      model: TTS_MODEL,
+      reason: 'no_api_key',
+      message: 'Gemini API key is not configured.',
+      statusCode: 503,
+    };
   }
 
   const controller = new AbortController();
@@ -27,7 +42,10 @@ export async function generateGeminiSpeech(text: string): Promise<Buffer | null>
       `https://generativelanguage.googleapis.com/v1beta/models/${TTS_MODEL}:generateContent?key=${apiKey}`,
       {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': apiKey,
+        },
         body: JSON.stringify({
           contents: [{ parts: [{ text }] }],
           generationConfig: {
@@ -47,36 +65,95 @@ export async function generateGeminiSpeech(text: string): Promise<Buffer | null>
     console.log(`[Gemini TTS] Completed in ${Date.now() - startTime}ms`);
 
     if (!response.ok) {
-      const err = await response.text();
-      console.error('[Gemini TTS] API error:', response.status, err);
-      return null;
+      const errorText = await response.text();
+      console.error('[Gemini TTS] API error:', response.status, errorText);
+
+      return {
+        ok: false,
+        model: TTS_MODEL,
+        reason: response.status === 429 ? 'quota_exhausted' : 'request_failed',
+        message: extractErrorMessage(errorText) || `Gemini TTS request failed with ${response.status}.`,
+        retryAfterMs: parseRetryDelayMs(errorText),
+        statusCode: response.status,
+      };
     }
 
     const data = await response.json();
     const b64 = data?.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
     if (!b64) {
-      console.error('[Gemini TTS] No audio data in response');
-      return null;
+      console.error('[Gemini TTS] No audio data in response', JSON.stringify(data));
+      return {
+        ok: false,
+        model: TTS_MODEL,
+        reason: 'no_audio',
+        message: 'Gemini TTS returned no audio payload.',
+        statusCode: 503,
+      };
     }
 
-    // Gemini returns raw 24kHz 16-bit mono PCM — wrap it in a WAV container
     const pcm = Buffer.from(b64, 'base64');
-    return pcmToWav(pcm, 24000, 1, 16);
-
-  } catch (error: any) {
+    return {
+      ok: true,
+      model: TTS_MODEL,
+      audioBuffer: pcmToWav(pcm, 24000, 1, 16),
+    };
+  } catch (error: unknown) {
     clearTimeout(timeoutId);
-    if (error.name === 'AbortError') {
+
+    if (error instanceof Error && error.name === 'AbortError') {
       console.error('[Gemini TTS] Timed out after 10s');
-    } else {
-      console.error('[Gemini TTS] Request failed:', error.message);
+      return {
+        ok: false,
+        model: TTS_MODEL,
+        reason: 'request_failed',
+        message: 'Gemini TTS timed out after 10 seconds.',
+        statusCode: 504,
+      };
     }
-    return null;
+
+    const message = error instanceof Error ? error.message : 'Unknown Gemini TTS error';
+    console.error('[Gemini TTS] Request failed:', message);
+
+    return {
+      ok: false,
+      model: TTS_MODEL,
+      reason: 'request_failed',
+      message,
+      statusCode: 503,
+    };
   }
 }
 
-/**
- * Wrap raw PCM bytes in a RIFF WAV header so browsers can play it.
- */
+function extractErrorMessage(errorText: string): string | null {
+  try {
+    const parsed = JSON.parse(errorText);
+    return parsed?.error?.message || null;
+  } catch {
+    return errorText || null;
+  }
+}
+
+function parseRetryDelayMs(errorText: string): number | undefined {
+  try {
+    const parsed = JSON.parse(errorText);
+    const retryInfo = parsed?.error?.details?.find(
+      (detail: { '@type'?: string; retryDelay?: string }) =>
+        detail?.['@type'] === 'type.googleapis.com/google.rpc.RetryInfo'
+    );
+
+    if (typeof retryInfo?.retryDelay === 'string') {
+      const seconds = Number.parseFloat(retryInfo.retryDelay.replace('s', ''));
+      if (!Number.isNaN(seconds)) {
+        return Math.ceil(seconds * 1000);
+      }
+    }
+  } catch {
+    return undefined;
+  }
+
+  return undefined;
+}
+
 function pcmToWav(pcm: Buffer, sampleRate: number, numChannels: number, bitsPerSample: number): Buffer {
   const byteRate = (sampleRate * numChannels * bitsPerSample) / 8;
   const blockAlign = (numChannels * bitsPerSample) / 8;
@@ -87,8 +164,8 @@ function pcmToWav(pcm: Buffer, sampleRate: number, numChannels: number, bitsPerS
   header.writeUInt32LE(36 + dataSize, 4);
   header.write('WAVE', 8);
   header.write('fmt ', 12);
-  header.writeUInt32LE(16, 16);           // PCM chunk size
-  header.writeUInt16LE(1, 20);            // AudioFormat = PCM
+  header.writeUInt32LE(16, 16);
+  header.writeUInt16LE(1, 20);
   header.writeUInt16LE(numChannels, 22);
   header.writeUInt32LE(sampleRate, 24);
   header.writeUInt32LE(byteRate, 28);
