@@ -4,8 +4,8 @@ import cors from 'cors';
 import mongoose from 'mongoose';
 
 import interviewRoutes from './routes/interview';
-import avatarRoutes from './avatar/avatar.routes';
 import transcribeRoutes from './routes/transcribe';
+import ttsRoutes from './routes/tts';
 
 import { env } from './config/env';
 
@@ -24,8 +24,8 @@ app.use(cors());
 app.use(express.json());
 
 app.use('/api', interviewRoutes);
-app.use('/api/avatar', avatarRoutes);
 app.use('/api/transcribe', transcribeRoutes);
+app.use('/api/tts', ttsRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Interview Simulator API is running' });

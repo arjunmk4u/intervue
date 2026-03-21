@@ -70,8 +70,7 @@ router.post('/start-session', async (req, res) => {
     res.json({ 
       sessionId, 
       question: firstQuestion, 
-      phase: session.phase,
-      avatar: { enabled: true, text: firstQuestion }
+      phase: session.phase
     });
   } catch (error) {
     console.error('Session start error:', error);
@@ -119,8 +118,7 @@ router.post('/next-question', async (req, res) => {
 
     res.json({ 
       question: nextQuestion, 
-      phase: session.phase,
-      avatar: { enabled: true, text: nextQuestion } 
+      phase: session.phase
     });
   } catch (error) {
     console.error('Next question error:', error);
