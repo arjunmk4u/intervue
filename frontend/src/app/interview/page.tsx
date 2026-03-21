@@ -8,13 +8,9 @@ interface Message {
   content: string;
 }
 
-interface TtsFallbackResponse {
-  error?: string;
-  fallback?: boolean;
-  reason?: 'quota_exhausted' | 'request_failed' | 'no_api_key' | 'no_audio';
-  message?: string;
-  retryAfterMs?: number;
-  model?: string;
+interface VoicePayload {
+  enabled?: boolean;
+  text?: string;
 }
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
@@ -23,19 +19,16 @@ export default function InterviewRoom() {
   const router = useRouter();
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [voiceNotice, setVoiceNotice] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState('');
   const [phase, setPhase] = useState('');
-  const [voiceNotice, setVoiceNotice] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const activeAudioRef = useRef<HTMLAudioElement | null>(null);
-  const pendingAudioRef = useRef<{ audio: HTMLAudioElement; url: string; text: string } | null>(null);
-  const pendingSpeechTextRef = useRef<string | null>(null);
+  const pendingAudioRef = useRef<{ audio: HTMLAudioElement; url: string } | null>(null);
   const interactionRetryHandlerRef = useRef<(() => void) | null>(null);
-  const hasUserInteractedRef = useRef<boolean>(false);
-  const geminiCooldownUntilRef = useRef<number>(0);
   const initialSpeakRef = useRef<boolean>(false);
-  const abortControllerRef = useRef<AbortController | null>(null);
   const isMountedRef = useRef<boolean>(true);
   const [coachingTip, setCoachingTip] = useState<string | null>(null);
   const [pulseMetrics, setPulseMetrics] = useState<{ latency: number; speechRate: number; confidenceSignal: string } | null>(null);
@@ -60,111 +53,89 @@ export default function InterviewRoom() {
     pendingAudioRef.current = null;
   };
 
-  const queueBrowserSpeechRetry = (text: string) => {
-    if (typeof window === 'undefined') return;
+  const speakResponse = async (text: string): Promise<void> => {
+    if (!isMountedRef.current) return;
 
-    pendingSpeechTextRef.current = text;
     unregisterPlaybackRetry();
-
-    const retrySpeech = () => {
-      const pendingText = pendingSpeechTextRef.current;
-      unregisterPlaybackRetry();
-      pendingSpeechTextRef.current = null;
-
-      if (!pendingText || !isMountedRef.current) return;
-      hasUserInteractedRef.current = true;
-      speakBrowserFallback(pendingText, false);
-    };
-
-    interactionRetryHandlerRef.current = retrySpeech;
-    window.addEventListener('pointerdown', retrySpeech);
-    window.addEventListener('keydown', retrySpeech);
-  };
-
-  const speakBrowserFallback = (text: string, allowDeferred = true) => {
-    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
-
-    if (allowDeferred && !hasUserInteractedRef.current) {
-      queueBrowserSpeechRetry(text);
-      return;
-    }
-
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-
-    utterance.onerror = (event) => {
-      console.warn('[TTS] Browser fallback speech error:', event.error);
-      if (event.error === 'not-allowed' || event.error === 'interrupted') {
-        queueBrowserSpeechRetry(text);
-      }
-    };
-
-    const loadVoicesAndSpeak = () => {
-      const voices = window.speechSynthesis.getVoices();
-      const premiumVoice = voices.find((voice) =>
-        voice.name.includes('Google UK English Female') ||
-        voice.name.includes('Google US English') ||
-        voice.name.includes('Microsoft Aria') ||
-        voice.name.includes('Samantha') ||
-        voice.name.includes('Female')
-      );
-
-      if (premiumVoice) utterance.voice = premiumVoice;
-
-      utterance.rate = 1.05;
-      utterance.pitch = 1.1;
-      utterance.volume = 1;
-      window.speechSynthesis.speak(utterance);
-    };
-
-    if (window.speechSynthesis.getVoices().length > 0) {
-      loadVoicesAndSpeak();
-    } else {
-      window.speechSynthesis.onvoiceschanged = loadVoicesAndSpeak;
-    }
-  };
-
-  const queueAudioRetry = (audio: HTMLAudioElement, url: string, text: string) => {
-    if (typeof window === 'undefined') return;
-
     clearPendingAudio();
-    unregisterPlaybackRetry();
-    pendingAudioRef.current = { audio, url, text };
 
-    const retryPlayback = () => {
-      const pending = pendingAudioRef.current;
-      unregisterPlaybackRetry();
+    if (activeAudioRef.current) {
+      activeAudioRef.current.pause();
+      activeAudioRef.current = null;
+    }
 
-      if (!pending || !isMountedRef.current) return;
+    try {
+      setIsSpeaking(true);
+      setVoiceNotice(null);
 
-      hasUserInteractedRef.current = true;
-      pending.audio.play().then(() => {
-        pendingAudioRef.current = null;
-      }).catch((error) => {
-        console.warn('[TTS] Retry playback failed, using browser fallback:', error);
-        clearPendingAudio();
-        speakBrowserFallback(pending.text, false);
+      const res = await fetch(`${BACKEND_URL}/api/voice/speak`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text }),
       });
-    };
 
-    interactionRetryHandlerRef.current = retryPlayback;
-    window.addEventListener('pointerdown', retryPlayback);
-    window.addEventListener('keydown', retryPlayback);
+      const data = await res.json() as { audioUrl?: string | null; fallback?: boolean };
+
+      if (!res.ok || !data.audioUrl) {
+        setIsSpeaking(false);
+        setVoiceNotice('Voice output is temporarily unavailable. Interview will continue without audio.');
+        return;
+      }
+
+      const audioUrl = data.audioUrl.startsWith('http') ? data.audioUrl : `${BACKEND_URL}${data.audioUrl}`;
+      const audio = new Audio(audioUrl);
+      activeAudioRef.current = audio;
+
+      audio.onended = () => {
+        setIsSpeaking(false);
+        if (activeAudioRef.current === audio) {
+          activeAudioRef.current = null;
+        }
+      };
+
+      audio.onerror = () => {
+        setIsSpeaking(false);
+        setVoiceNotice('Voice playback failed. Interview will continue without audio.');
+        if (activeAudioRef.current === audio) {
+          activeAudioRef.current = null;
+        }
+      };
+
+      try {
+        await audio.play();
+      } catch (playError) {
+        if (playError instanceof DOMException && playError.name === 'NotAllowedError') {
+          pendingAudioRef.current = { audio, url: audioUrl };
+
+          const retryPlayback = () => {
+            const pending = pendingAudioRef.current;
+            unregisterPlaybackRetry();
+
+            if (!pending || !isMountedRef.current) return;
+
+            pending.audio.play().then(() => {
+              pendingAudioRef.current = null;
+            }).catch((error) => {
+              console.error('[Voice] Playback retry failed:', error);
+              setIsSpeaking(false);
+              setVoiceNotice('Voice playback was blocked by the browser. Interview will continue without audio.');
+            });
+          };
+
+          interactionRetryHandlerRef.current = retryPlayback;
+          window.addEventListener('pointerdown', retryPlayback);
+          window.addEventListener('keydown', retryPlayback);
+          return;
+        }
+
+        throw playError;
+      }
+    } catch (error) {
+      console.error('[Voice] Speak request failed:', error);
+      setIsSpeaking(false);
+      setVoiceNotice('Voice service is unavailable right now. Interview will continue without audio.');
+    }
   };
-
-  useEffect(() => {
-    const markInteraction = () => {
-      hasUserInteractedRef.current = true;
-    };
-
-    window.addEventListener('pointerdown', markInteraction);
-    window.addEventListener('keydown', markInteraction);
-
-    return () => {
-      window.removeEventListener('pointerdown', markInteraction);
-      window.removeEventListener('keydown', markInteraction);
-    };
-  }, []);
 
   useEffect(() => {
     const storedSession = localStorage.getItem('sessionId');
@@ -189,11 +160,6 @@ export default function InterviewRoom() {
       isMountedRef.current = false;
       unregisterPlaybackRetry();
       clearPendingAudio();
-      pendingSpeechTextRef.current = null;
-
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
 
       if (mediaRecorder) {
         mediaRecorder.stream.getTracks().forEach((track) => track.stop());
@@ -203,122 +169,12 @@ export default function InterviewRoom() {
         activeAudioRef.current.pause();
         activeAudioRef.current = null;
       }
-
-      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-        window.speechSynthesis.cancel();
-      }
     };
   }, [router]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
-
-  const speakResponse = async (text: string): Promise<void> => {
-    if (!isMountedRef.current) return;
-
-    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-    }
-
-    if (activeAudioRef.current) {
-      activeAudioRef.current.pause();
-      activeAudioRef.current = null;
-    }
-
-    unregisterPlaybackRetry();
-    clearPendingAudio();
-    pendingSpeechTextRef.current = null;
-
-    if (Date.now() < geminiCooldownUntilRef.current) {
-      speakBrowserFallback(text);
-      return;
-    }
-
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-    abortControllerRef.current = new AbortController();
-
-    try {
-      const res = await fetch(`${BACKEND_URL}/api/tts`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text }),
-        signal: abortControllerRef.current.signal,
-      });
-
-      if (!res.ok) {
-        let fallbackData: TtsFallbackResponse | null = null;
-
-        try {
-          fallbackData = (await res.json()) as TtsFallbackResponse;
-        } catch {
-          fallbackData = null;
-        }
-
-        if (fallbackData?.reason === 'quota_exhausted') {
-          const retryAfterMs = Math.max(15000, fallbackData.retryAfterMs || 60000);
-          geminiCooldownUntilRef.current = Date.now() + retryAfterMs;
-          setVoiceNotice(`Gemini voice quota is exhausted right now. Using browser voice for about ${Math.ceil(retryAfterMs / 1000)}s.`);
-        } else if (fallbackData?.message) {
-          setVoiceNotice(`Gemini voice unavailable. Using browser voice instead.`);
-          console.warn('[TTS] Gemini fallback reason:', fallbackData.message);
-        }
-
-        if (isMountedRef.current) speakBrowserFallback(text);
-        return;
-      }
-
-      setVoiceNotice(null);
-
-      const blob = await res.blob();
-      if (!isMountedRef.current) return;
-
-      const url = URL.createObjectURL(blob);
-      const audio = new Audio(url);
-      audio.preload = 'auto';
-      activeAudioRef.current = audio;
-
-      audio.onended = () => {
-        URL.revokeObjectURL(url);
-        if (activeAudioRef.current === audio) {
-          activeAudioRef.current = null;
-        }
-        if (pendingAudioRef.current?.audio === audio) {
-          pendingAudioRef.current = null;
-        }
-      };
-
-      audio.onerror = () => {
-        URL.revokeObjectURL(url);
-        if (activeAudioRef.current === audio) {
-          activeAudioRef.current = null;
-        }
-        if (pendingAudioRef.current?.audio === audio) {
-          pendingAudioRef.current = null;
-        }
-      };
-
-      try {
-        await audio.play();
-      } catch (playError: unknown) {
-        if (playError instanceof DOMException && playError.name === 'NotAllowedError') {
-          console.warn('[TTS] Autoplay blocked, waiting for user interaction');
-          queueAudioRetry(audio, url, text);
-          return;
-        }
-        throw playError;
-      }
-    } catch (err: unknown) {
-      if ((err instanceof DOMException && err.name === 'AbortError') || !isMountedRef.current) {
-        return;
-      }
-      console.warn('[TTS] Gemini failed, using browser fallback:', err);
-      setVoiceNotice('Gemini voice request failed. Using browser voice instead.');
-      speakBrowserFallback(text);
-    }
-  };
+  }, [messages, isSpeaking]);
 
   const toggleRecording = async () => {
     if (isRecording && mediaRecorder) {
@@ -350,7 +206,7 @@ export default function InterviewRoom() {
           });
           const data = await res.json();
           if (data.transcript) {
-            handleVoiceSubmit(data.transcript);
+            void handleVoiceSubmit(data.transcript);
           } else {
             console.warn('Deepgram returned empty transcript');
           }
@@ -371,7 +227,7 @@ export default function InterviewRoom() {
   };
 
   const handleVoiceSubmit = async (transcript: string) => {
-    if (!transcript.trim() || loading) return;
+    if (!transcript.trim() || loading || isSpeaking) return;
 
     setMessages((prev) => [...prev, { role: 'user', content: transcript }]);
     setLoading(true);
@@ -396,7 +252,7 @@ export default function InterviewRoom() {
 
       const [resNext, resAnalyze] = await Promise.all([nextQuestionPromise, analyzePromise]);
 
-      const data = await resNext.json();
+      const data = await resNext.json() as { question: string; phase?: string; voice?: VoicePayload; error?: string };
       if (!resNext.ok) throw new Error(data.error || 'Failed to get response');
 
       if (resAnalyze.ok) {
@@ -408,11 +264,12 @@ export default function InterviewRoom() {
       setMessages((prev) => [...prev, { role: 'assistant', content: data.question }]);
       if (data.phase) setPhase(data.phase);
 
-      void speakResponse(data.question);
+      if (data.voice?.enabled) {
+        await speakResponse(data.voice.text || data.question);
+      }
     } catch (error) {
       console.error(error);
       setMessages((prev) => [...prev, { role: 'system', content: 'Connection error while fetching AI response.' }]);
-      speakBrowserFallback("I'm sorry, I encountered an error. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -474,6 +331,19 @@ export default function InterviewRoom() {
             </div>
           )}
 
+          {isSpeaking && (
+            <div className="flex justify-start animate-in fade-in duration-300">
+              <div className="bg-cyan-500/10 border border-cyan-400/20 rounded-2xl rounded-tl-none p-5 flex items-center gap-3 min-w-[180px] shadow-xl backdrop-blur-sm">
+                <div className="flex gap-1">
+                  <div className="w-2 h-4 rounded-full bg-cyan-300 animate-[pulse_900ms_infinite]"></div>
+                  <div className="w-2 h-6 rounded-full bg-cyan-400 animate-[pulse_900ms_infinite_150ms]"></div>
+                  <div className="w-2 h-3 rounded-full bg-cyan-200 animate-[pulse_900ms_infinite_300ms]"></div>
+                </div>
+                <span className="text-sm font-semibold text-cyan-100">AI is speaking...</span>
+              </div>
+            </div>
+          )}
+
           {(coachingTip || pulseMetrics) && !loading && (
             <div className="flex flex-col items-center gap-4 animate-in slide-in-from-bottom-2 duration-500 mt-4">
               {pulseMetrics && (
@@ -521,7 +391,7 @@ export default function InterviewRoom() {
           <div className="pointer-events-auto flex flex-col items-center">
             <button
               onClick={toggleRecording}
-              disabled={loading || isConverting}
+              disabled={loading || isConverting || isSpeaking}
               className={`w-20 h-20 md:w-24 md:h-24 rounded-full flex items-center justify-center transition-all duration-300 shadow-2xl relative mb-4 ${
                 isRecording
                   ? 'bg-red-500 hover:bg-red-600 shadow-[0_0_40px_rgba(239,68,68,0.6)] animate-pulse scale-105'
@@ -539,7 +409,7 @@ export default function InterviewRoom() {
               )}
             </button>
             <span className="text-sm font-bold text-slate-400 tracking-widest uppercase bg-slate-900/80 px-4 py-1.5 rounded-full backdrop-blur border border-slate-700 shadow-lg">
-              {isRecording ? 'Listening... Click to Send' : 'Click to Speak'}
+              {isSpeaking ? 'Wait for the interviewer...' : isRecording ? 'Listening... Click to Send' : 'Click to Speak'}
             </span>
           </div>
         </div>

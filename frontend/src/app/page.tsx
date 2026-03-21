@@ -89,14 +89,14 @@ export default function Home() {
         <div className="space-y-8">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-indigo-500/30 bg-indigo-500/10 text-xs font-semibold text-indigo-300 uppercase tracking-widest backdrop-blur-sm">
             <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse"></span>
-            Gemini-Powered Intelligence
+            Voice-First Interview Intelligence
           </div>
           <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight text-white leading-[1.1] font-manrope">
             Nail your next <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-indigo-500">technical interview.</span>
           </h1>
           <p className="text-lg md:text-xl text-slate-400 max-w-lg leading-relaxed mix-blend-lighten">
-            Experience ultra-realistic voice interviews with real-time coaching, behavioral analytics, and strict technical evaluations tailored to your exact experience level.
+            Experience natural voice interviews with real-time coaching, behavioral analytics, and strict technical evaluations tailored to your exact experience level.
           </p>
 
           {/* Social Proof / Stats */}

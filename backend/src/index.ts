@@ -2,10 +2,11 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import mongoose from 'mongoose';
+import path from 'path';
 
 import interviewRoutes from './routes/interview';
 import transcribeRoutes from './routes/transcribe';
-import ttsRoutes from './routes/tts';
+import voiceRoutes from './voice/voice.routes';
 
 import { env } from './config/env';
 
@@ -22,10 +23,11 @@ mongoose.connect(MONGODB_URI).then(() => {
 
 app.use(cors());
 app.use(express.json());
+app.use('/voice', express.static(path.join(process.cwd(), 'public', 'voice')));
 
 app.use('/api', interviewRoutes);
 app.use('/api/transcribe', transcribeRoutes);
-app.use('/api/tts', ttsRoutes);
+app.use('/api/voice', voiceRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Interview Simulator API is running' });

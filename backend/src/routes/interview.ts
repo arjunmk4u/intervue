@@ -74,7 +74,11 @@ router.post('/start-session', async (req, res) => {
     res.json({ 
       sessionId, 
       question: firstQuestion, 
-      phase: session.phase
+      phase: session.phase,
+      voice: {
+        enabled: true,
+        text: firstQuestion
+      }
     });
   } catch (error) {
     console.error('Session start error:', error);
@@ -122,7 +126,11 @@ router.post('/next-question', async (req, res) => {
 
     res.json({ 
       question: nextQuestion, 
-      phase: session.phase
+      phase: session.phase,
+      voice: {
+        enabled: true,
+        text: nextQuestion
+      }
     });
   } catch (error) {
     console.error('Next question error:', error);
