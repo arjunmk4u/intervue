@@ -268,82 +268,120 @@ export default function InterviewRoom() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-slate-950 text-slate-200 font-sans overflow-hidden items-center">
-      <div className="w-full max-w-4xl p-6 flex justify-between items-center bg-slate-950/80 backdrop-blur z-20 border-b border-slate-800">
-        <h2 className="font-bold text-xl bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent tracking-tight">
-          Intervue <span className="text-sm text-[#E1E2EB]/50 ml-2 font-light">Cinematic Analyst</span>
-        </h2>
-        <div className="flex gap-4 items-center">
-          <div className="inline-flex items-center px-4 py-1.5 rounded-full text-xs font-bold bg-[#4B4DD8]/20 text-[#C0C1FF] border border-[#4B4DD8]/30 uppercase tracking-widest shadow-[0_0_15px_rgba(75,77,216,0.2)]">
-            Phase: {phase}
+    <main className="h-screen bg-[#0B0E14] text-slate-200 font-sans selection:bg-indigo-500/30 overflow-hidden relative flex flex-col">
+      {/* Background Decorators */}
+      <div className="absolute top-0 left-0 right-0 h-[500px] bg-gradient-to-b from-indigo-900/10 via-[#0B0E14] to-transparent pointer-events-none z-0"></div>
+      <div className="absolute top-[-10%] left-[-5%] w-[400px] h-[400px] rounded-full bg-blue-600/5 blur-[100px] pointer-events-none z-0"></div>
+      <div className="absolute bottom-[10%] right-[-5%] w-[400px] h-[400px] rounded-full bg-purple-600/5 blur-[100px] pointer-events-none z-0"></div>
+
+      {/* Navbar - Fixed Height */}
+      <nav className="relative z-30 flex items-center justify-between px-6 py-4 border-b border-slate-800/50 bg-[#0B0E14]/80 backdrop-blur-md">
+        <div className="flex items-center gap-2 cursor-pointer" onClick={() => router.push('/')}>
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-cyan-400 to-indigo-500 flex items-center justify-center shadow-[0_0_15px_rgba(47,217,244,0.3)]">
+            <svg className="w-5 h-5 text-[#0B0E14]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+          </div>
+          <span className="text-xl font-bold tracking-tight text-white font-manrope">Intervue</span>
+        </div>
+        
+        <div className="flex items-center gap-4">
+          <div className="hidden md:flex items-center gap-2 px-3 py-1 rounded-full border border-indigo-500/20 bg-indigo-500/10 text-[10px] font-bold text-indigo-300 uppercase tracking-widest">
+            <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse"></span>
+            {phase.replace('-', ' ')}
           </div>
           <button
             onClick={() => router.push(`/analytics?sessionId=${sessionId}`)}
-            className="px-4 py-1.5 rounded-full text-xs font-bold text-[#E1E2EB] hover:text-white border border-[#464555]/30 hover:bg-white/10 uppercase tracking-widest transition-all"
+            className="px-4 py-1.5 rounded-full text-[10px] font-bold text-slate-400 hover:text-white border border-slate-800 hover:bg-white/5 uppercase tracking-widest transition-all"
           >
-            End Session
+            End Interview
           </button>
         </div>
-      </div>
+      </nav>
 
-      <div className="flex-1 w-full max-w-4xl flex flex-col relative h-full">
-        <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-6 scroll-smooth pb-40">
+      {/* Chat Area - Scrollable */}
+      <div className="flex-1 overflow-y-auto relative z-10 scroll-smooth custom-scrollbar">
+        <div className="max-w-3xl mx-auto px-6 py-12 space-y-8">
           {messages.map((msg, idx) => (
-            <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-in slide-in-from-bottom-2 fade-in duration-300`}>
+            <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-in slide-in-from-bottom-4 duration-500 transform-gpu`}>
               <div
-                className={`max-w-[85%] md:max-w-[75%] rounded-2xl p-5 md:p-6 text-base md:text-lg ${
+                className={`group relative max-w-[85%] md:max-w-[80%] rounded-2xl p-5 md:p-6 text-base md:text-lg transition-all ${
                   msg.role === 'user'
-                    ? 'bg-gradient-to-br from-indigo-500 to-blue-600 text-white rounded-tr-none shadow-lg tracking-wide'
+                    ? 'bg-gradient-to-br from-indigo-600 to-blue-700 text-white rounded-tr-none shadow-[0_10px_30px_-10px_rgba(79,70,229,0.4)]'
                     : msg.role === 'system'
-                      ? 'bg-red-950/30 text-red-300 border border-red-900/50 italic w-full text-center'
-                      : 'bg-slate-800/80 text-slate-200 rounded-tl-none border border-slate-700 shadow-xl backdrop-blur-sm tracking-wide leading-relaxed'
+                      ? 'bg-red-950/20 text-red-300 border border-red-900/30 italic w-full text-center py-3'
+                      : 'bg-[#13161F]/60 text-slate-200 rounded-tl-none border border-slate-800/50 shadow-xl backdrop-blur-md'
                 }`}
               >
-                <p className="whitespace-pre-wrap">{msg.content}</p>
+                {msg.role === 'assistant' && (
+                  <div className="absolute -top-6 left-0 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Interviewer</div>
+                )}
+                {msg.role === 'user' && (
+                  <div className="absolute -top-6 right-0 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-right">You</div>
+                )}
+                <p className="whitespace-pre-wrap leading-relaxed mix-blend-plus-lighter">{msg.content}</p>
               </div>
             </div>
           ))}
 
           {(loading || isConverting) && (
             <div className="flex justify-start animate-in fade-in duration-300">
-              <div className="bg-slate-800/80 border border-slate-700 rounded-2xl rounded-tl-none p-5 flex flex-col items-center justify-center gap-3 min-w-[140px] shadow-xl backdrop-blur-sm">
+              <div className="bg-[#13161F]/40 border border-slate-800/50 rounded-2xl rounded-tl-none p-6 flex flex-col items-center justify-center gap-4 min-w-[160px] backdrop-blur-sm">
                 <div className="flex gap-2">
-                  <div className="w-2.5 h-2.5 rounded-full bg-indigo-500 animate-[bounce_1s_infinite_0ms]"></div>
-                  <div className="w-2.5 h-2.5 rounded-full bg-indigo-400 animate-[bounce_1s_infinite_150ms]"></div>
-                  <div className="w-2.5 h-2.5 rounded-full bg-indigo-300 animate-[bounce_1s_infinite_300ms]"></div>
+                  <div className="w-2 h-2 rounded-full bg-indigo-500 animate-[bounce_1s_infinite_0ms]"></div>
+                  <div className="w-2 h-2 rounded-full bg-cyan-400 animate-[bounce_1s_infinite_200ms]"></div>
+                  <div className="w-2 h-2 rounded-full bg-indigo-300 animate-[bounce_1s_infinite_400ms]"></div>
                 </div>
-                <span className="text-sm text-slate-400 font-semibold">{isConverting ? 'Transcribing...' : 'Thinking...'}</span>
+                <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
+                  {isConverting ? 'Transcribing...' : 'Thinking...'}
+                </span>
               </div>
             </div>
           )}
-
-          <div ref={messagesEndRef} className="h-10" />
+          <div ref={messagesEndRef} className="h-32" />
         </div>
+      </div>
 
-        <div className="absolute bottom-0 left-0 right-0 p-8 bg-gradient-to-t from-slate-950 via-slate-950/95 to-transparent flex flex-col items-center justify-end pointer-events-none z-10 w-full">
-          <div className="pointer-events-auto flex flex-col items-center">
-            <button
-              onClick={toggleRecording}
-              disabled={loading || isConverting || isSpeaking}
-              className={`w-20 h-20 md:w-24 md:h-24 rounded-full flex items-center justify-center transition-all duration-300 shadow-2xl relative mb-4 ${
-                isRecording
-                  ? 'bg-red-500 hover:bg-red-600 shadow-[0_0_40px_rgba(239,68,68,0.6)] animate-pulse scale-105'
-                  : 'bg-indigo-600 hover:bg-indigo-500 shadow-[0_0_20px_rgba(79,70,229,0.3)] hover:shadow-[0_0_30px_rgba(79,70,229,0.5)] hover:-translate-y-1'
-              } disabled:opacity-50 disabled:cursor-not-allowed`}
-            >
-              {isRecording ? (
-                <svg className="w-8 h-8 md:w-10 md:h-10 text-white" fill="currentColor" viewBox="0 0 20 20">
-                  <rect x="6" y="6" width="8" height="8" rx="1" />
-                </svg>
-              ) : (
-                <svg className="w-8 h-8 md:w-10 md:h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                </svg>
-              )}
-            </button>
-            <span className="text-sm font-bold text-slate-400 tracking-widest uppercase bg-slate-900/80 px-4 py-1.5 rounded-full backdrop-blur border border-slate-700 shadow-lg">
-              {isSpeaking ? 'Interviewer speaking...' : isRecording ? 'Listening... Click to Send' : 'Click to Speak'}
-            </span>
+      {/* Control Area - Fixed at Bottom */}
+      <div className="relative z-20 pb-10 pt-4 px-6 bg-gradient-to-t from-[#0B0E14] via-[#0B0E14] to-transparent">
+        <div className="max-w-3xl mx-auto flex flex-col items-center relative">
+          
+          {/* Speaking/Recording Indicator Overlay */}
+          <div className={`absolute -top-16 left-1/2 -translate-x-1/2 transition-all duration-300 ${isSpeaking || isRecording || isConverting ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
+             <div className="flex items-center gap-3 px-6 py-2 rounded-full bg-slate-900/90 border border-slate-700/50 shadow-2xl backdrop-blur-xl">
+                <div className="flex gap-1 items-center">
+                   <div className={`w-1 h-3 bg-indigo-500 rounded-full ${isSpeaking || isRecording ? 'animate-[stretch_0.5s_infinite_alternate]' : ''}`}></div>
+                   <div className={`w-1 h-5 bg-cyan-400 rounded-full ${isSpeaking || isRecording ? 'animate-[stretch_0.5s_infinite_alternate_0.1s]' : ''}`}></div>
+                   <div className={`w-1 h-2 bg-indigo-400 rounded-full ${isSpeaking || isRecording ? 'animate-[stretch_0.5s_infinite_alternate_0.2s]' : ''}`}></div>
+                </div>
+                <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">
+                  {isSpeaking ? 'Interviewer Speaking' : isRecording ? 'Listening...' : 'Processing'}
+                </span>
+             </div>
+          </div>
+
+          <button
+            onClick={toggleRecording}
+            disabled={loading || isConverting || isSpeaking}
+            className={`group relative w-16 h-16 md:w-20 md:h-20 rounded-full flex items-center justify-center transition-all duration-500 ${
+              isRecording
+                ? 'bg-red-500 shadow-[0_0_40px_rgba(239,68,68,0.4)] scale-110'
+                : 'bg-indigo-600 hover:bg-indigo-500 shadow-[0_0_30px_rgba(79,70,229,0.3)] hover:shadow-[0_0_50px_rgba(79,70,229,0.5)]'
+            } disabled:opacity-30 disabled:grayscale disabled:cursor-not-allowed`}
+          >
+            {isRecording ? (
+              <div className="w-6 h-6 md:w-8 md:h-8 bg-white rounded-sm"></div>
+            ) : (
+              <svg className="w-8 h-8 md:w-10 md:h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+              </svg>
+            )}
+            {/* Pulsing ring when active */}
+            {(isRecording || isSpeaking) && (
+              <div className="absolute inset-0 rounded-full border-4 border-white/20 animate-ping opacity-20"></div>
+            )}
+          </button>
+          
+          <div className="mt-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+            {isSpeaking ? 'Please wait...' : isRecording ? 'Click to finish' : 'Tap to start speaking'}
           </div>
         </div>
       </div>
@@ -363,7 +401,27 @@ export default function InterviewRoom() {
           console.log(`[Voice] Audio metadata loaded, duration: ${e.currentTarget.duration}s`);
         }}
       />
-    </div>
+
+      <style jsx global>{`
+        @keyframes stretch {
+          from { height: 4px; opacity: 0.5; }
+          to { height: 16px; opacity: 1; }
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 5px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: rgba(255, 255, 255, 0.05);
+          border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: rgba(255, 255, 255, 0.1);
+        }
+      `}</style>
+    </main>
   );
 }
 

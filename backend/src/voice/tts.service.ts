@@ -53,10 +53,7 @@ function rewriteForConversation(text: string): string {
   spoken = spoken.replace(/^What is\b/i, 'What would you say is');
   spoken = spoken.replace(/^How did you\b/i, 'How did you approach');
 
-  if (spoken.endsWith('?') && !/^(Alright|So|Okay),/i.test(spoken)) {
-    spoken = `Alright, ${spoken.charAt(0).toLowerCase()}${spoken.slice(1)}`;
-  }
-
+  // No longer prepending 'Alright' to questions as it feels repetitive.
   return spoken;
 }
 

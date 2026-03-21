@@ -45,10 +45,20 @@ function AnalyticsDashboardContent() {
     const fetchReport = async () => {
       try {
         const res = await fetch(`${BACKEND_URL}/api/final-report?sessionId=${sessionId}`);
+        if (!res.ok) {
+          throw new Error(`API returned ${res.status}`);
+        }
         const data = await res.json();
-        setReport(data);
+        // Check if data is an error object
+        if (data.error) {
+          console.error('Report error detail:', data.error);
+          setReport(null);
+        } else {
+          setReport(data);
+        }
       } catch (err) {
         console.error('Failed to load analytics:', err);
+        setReport(null);
       } finally {
         setLoading(false);
       }
@@ -61,7 +71,7 @@ function AnalyticsDashboardContent() {
     return <AnalyticsLoadingState />;
   }
 
-  if (!report) {
+  if (!report || (report as any).error) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-[#0B0E14] px-6 text-center text-slate-200">
         <h2 className="text-2xl font-bold text-white">Analysis Unavailable</h2>

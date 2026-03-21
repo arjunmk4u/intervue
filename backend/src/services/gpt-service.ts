@@ -29,7 +29,23 @@ export async function generateNextQuestion(session: ISession, resumeData: IResum
       temperature: 0.7,
     });
 
-    return response.choices[0]?.message?.content || "Could you tell me more about that?";
+    let content = response.choices[0]?.message?.content || "Could you tell me more about that?";
+    
+    // Post-processing to remove "Alright", "Great", "Okay", etc. at the start
+    const fillerWords = ['Alright', 'Great', 'Okay', 'I understand', 'Sure', 'Wonderful', 'Excellent', 'Fantastic', 'Nice', 'Good'];
+    const fillerRegex = new RegExp(`^(${fillerWords.join('|')})[\\s,!.]+`, 'i');
+    
+    // Loop to remove multiple consecutive fillers
+    while (fillerRegex.test(content)) {
+      content = content.replace(fillerRegex, '').trim();
+    }
+
+    // Ensure first letter is capitalized
+    if (content.length > 0) {
+      content = content.charAt(0).toUpperCase() + content.slice(1);
+    }
+
+    return content || "Could you tell me more about that?";
   } catch (error) {
     console.error("Groq API Error generating question:", error);
     return "I'm having a little trouble processing that. Could you please elaborate on your last point?";
