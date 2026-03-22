@@ -2,7 +2,6 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import mongoose from 'mongoose';
-import path from 'path';
 
 import interviewRoutes from './routes/interview';
 import transcribeRoutes from './routes/transcribe';
@@ -23,7 +22,6 @@ mongoose.connect(MONGODB_URI).then(() => {
 
 app.use(cors());
 app.use(express.json());
-app.use('/voice', express.static(path.resolve(__dirname, '..', 'public', 'voice')));
 
 app.use('/api', interviewRoutes);
 app.use('/api/transcribe', transcribeRoutes);

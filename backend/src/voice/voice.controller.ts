@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { enqueue } from './voice.queue';
-import { generateSpeech, readGeneratedSpeech } from './tts.service';
+import { generateSpeech } from './tts.service';
 
 export async function speakController(req: Request, res: Response): Promise<void> {
   const { text } = req.body as { text?: string };
@@ -11,11 +11,10 @@ export async function speakController(req: Request, res: Response): Promise<void
   }
 
   try {
-    const audioUrl = await enqueue(async () => generateSpeech(text));
-    const audioBuffer = await readGeneratedSpeech(audioUrl);
+    const audioBuffer = await enqueue(async () => generateSpeech(text));
 
     res.json({
-      audioUrl,
+      audioUrl: null, // No file storage, so no URL
       audioBase64: audioBuffer.toString('base64'),
       mimeType: 'audio/mpeg',
     });

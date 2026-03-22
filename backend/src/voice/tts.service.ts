@@ -1,32 +1,19 @@
-import fs from 'fs';
-import path from 'path';
 import { Constants, EdgeTTS } from '@andresaya/edge-tts';
 
-const VOICE_OUTPUT_DIR = path.resolve(__dirname, '..', '..', 'public', 'voice');
 const DEFAULT_VOICE = 'en-US-JennyNeural';
 
-export async function generateSpeech(text: string): Promise<string> {
-  await fs.promises.mkdir(VOICE_OUTPUT_DIR, { recursive: true });
-  await cleanupOldAudioFiles();
-
-  const fileName = `audio-${Date.now()}.mp3`;
-  const humanizedText = humanizeText(text);
+export async function generateSpeech(text: string): Promise<Buffer> {
   const tts = new EdgeTTS();
 
-  await tts.synthesize(humanizedText, DEFAULT_VOICE, {
+  await tts.synthesize(humanizeText(text), DEFAULT_VOICE, {
     rate: '-8%',
     pitch: '-8Hz',
     volume: '90%',
     outputFormat: Constants.OUTPUT_FORMAT.AUDIO_24KHZ_48KBITRATE_MONO_MP3,
   });
 
-  const savedFilePath = await tts.toFile(path.join(VOICE_OUTPUT_DIR, fileName.replace(/\.mp3$/, '')));
-  return `/voice/${path.basename(savedFilePath)}`;
-}
-
-export async function readGeneratedSpeech(audioUrl: string): Promise<Buffer> {
-  const filePath = path.join(VOICE_OUTPUT_DIR, path.basename(audioUrl));
-  return fs.promises.readFile(filePath);
+  const audioBuffer = await tts.toBuffer();
+  return audioBuffer;
 }
 
 export function humanizeText(text: string): string {
@@ -100,26 +87,4 @@ function splitLongSentences(text: string): string {
   }
 
   return result.join(' ');
-}
-
-async function cleanupOldAudioFiles(): Promise<void> {
-  try {
-    const files = await fs.promises.readdir(VOICE_OUTPUT_DIR);
-    const now = Date.now();
-
-    await Promise.all(
-      files
-        .filter((file) => file.endsWith('.mp3'))
-        .map(async (file) => {
-          const fullPath = path.join(VOICE_OUTPUT_DIR, file);
-          const stats = await fs.promises.stat(fullPath);
-
-          if (now - stats.mtimeMs > 30 * 60 * 1000) {
-            await fs.promises.unlink(fullPath);
-          }
-        })
-    );
-  } catch {
-    // Best-effort cleanup only.
-  }
 }

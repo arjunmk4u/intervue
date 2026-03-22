@@ -93,25 +93,32 @@ export default function InterviewRoom() {
         return;
       }
 
-      const data = await res.json() as { audioUrl?: string | null; audioBase64?: string | null; mimeType?: string };
-      
-      if (!isMountedRef.current || requestId !== playRequestIdRef.current) {
-        console.warn(`[Voice] Request ${requestId} superseded or component unmounted.`);
-        return;
-      }
+       const data = await res.json() as { audioUrl?: string | null; audioBase64?: string | null; mimeType?: string };
+       
+       if (!isMountedRef.current || requestId !== playRequestIdRef.current) {
+         console.warn(`[Voice] Request ${requestId} superseded or component unmounted.`);
+         return;
+       }
 
-      if (!data.audioUrl) {
-        console.error('[Voice] No audio URL received');
-        setIsSpeaking(false);
-        return;
-      }
+       if (!data.audioBase64) {
+         console.error('[Voice] No audio data received');
+         setIsSpeaking(false);
+         return;
+       }
 
-      const sourceUrl = `${BACKEND_URL}${data.audioUrl}`;
-      console.log(`[Voice] Playing from URL: ${sourceUrl} (ID: ${requestId})`);
+       // Convert base64 to blob and create object URL
+       const binary = atob(data.audioBase64);
+       const bytes = new Uint8Array(binary.length);
+       for (let i = 0; i < binary.length; i++) {
+         bytes[i] = binary.charCodeAt(i);
+       }
+       const blob = new Blob([bytes], { type: data.mimeType || 'audio/mpeg' });
+       const sourceUrl = URL.createObjectURL(blob);
+       console.log(`[Voice] Playing from base64 data (ID: ${requestId})`);
 
-      audio.src = sourceUrl;
-      audio.currentTime = 0;
-      audio.load();
+       audio.src = sourceUrl;
+       audio.currentTime = 0;
+       audio.load();
 
       try {
         await audio.play();
