@@ -31,6 +31,7 @@ export default function InterviewRoom() {
 
   const isMountedRef = useRef<boolean>(true);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioUrlRef = useRef<string | null>(null);
   const interactionRetryHandlerRef = useRef<(() => void) | null>(null);
   const playRequestIdRef = useRef(0);
   const initialSpeakRef = useRef<boolean>(false);
@@ -55,6 +56,10 @@ export default function InterviewRoom() {
     if (!audio) return;
 
     audio.pause();
+    if (audioUrlRef.current) {
+      URL.revokeObjectURL(audioUrlRef.current);
+      audioUrlRef.current = null;
+    }
     audio.removeAttribute('src');
     audio.load();
     audio.currentTime = 0;
@@ -101,32 +106,29 @@ export default function InterviewRoom() {
         return;
       }
 
-      const data = await res.json() as { audioUrl?: string | null; audioBase64?: string | null; mimeType?: string };
-
       if (!isMountedRef.current || requestId !== playRequestIdRef.current) {
         console.warn(`[Voice] Request ${requestId} superseded or component unmounted.`);
         return;
       }
 
-      if (!data.audioBase64) {
+      const blob = await res.blob();
+      if (!isMountedRef.current || requestId !== playRequestIdRef.current) {
+        console.warn(`[Voice] Request ${requestId} superseded after audio download.`);
+        return;
+      }
+
+      if (!blob.size) {
         console.error('[Voice] No audio data received');
         setIsSpeaking(false);
         return;
       }
 
-      // Convert base64 to blob and create object URL
-      const binary = atob(data.audioBase64);
-      const bytes = new Uint8Array(binary.length);
-      for (let i = 0; i < binary.length; i++) {
-        bytes[i] = binary.charCodeAt(i);
-      }
-      const blob = new Blob([bytes], { type: data.mimeType || 'audio/mpeg' });
       const sourceUrl = URL.createObjectURL(blob);
-      console.log(`[Voice] Playing from base64 data (ID: ${requestId})`);
+      audioUrlRef.current = sourceUrl;
+      console.log(`[Voice] Playing streamed audio blob (ID: ${requestId})`);
 
       audio.src = sourceUrl;
       audio.currentTime = 0;
-      audio.load();
 
       try {
         await audio.play();
@@ -416,6 +418,7 @@ export default function InterviewRoom() {
       <audio
         ref={audioRef}
         className="hidden"
+        preload="auto"
         onEnded={() => {
           console.log('[Voice] Audio playback ended');
           promptReadyAtRef.current = Date.now();

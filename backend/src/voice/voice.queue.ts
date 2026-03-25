@@ -30,9 +30,7 @@ async function processQueue(): Promise<void> {
   } catch (error) {
     current.reject(error);
   } finally {
-    setTimeout(() => {
-      isProcessing = false;
-      void processQueue();
-    }, 500);
+    isProcessing = false;
+    void processQueue();
   }
 }
