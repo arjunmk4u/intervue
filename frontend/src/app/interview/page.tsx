@@ -25,6 +25,7 @@ export default function InterviewRoom() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [closingStatus, setClosingStatus] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState('');
   const [phase, setPhase] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -42,6 +43,80 @@ export default function InterviewRoom() {
   const [isConverting, setIsConverting] = useState(false);
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+
+  const sleep = useCallback((ms: number) => new Promise<void>((resolve) => {
+    window.setTimeout(resolve, ms);
+  }), []);
+
+  const buildClosingMessage = useCallback((latestAnswer: string) => {
+    const userResponses = messages.filter((message) => message.role === 'user').length + 1;
+    const answerLength = latestAnswer.trim().split(/\s+/).filter(Boolean).length;
+
+    const openers = [
+      'Alright, that brings us to the end of the interview.',
+      'That brings us to the end of our interview.',
+      'Alright, we have reached the end of the interview.',
+    ];
+
+    const reflections =
+      answerLength > 45
+        ? [
+            'You gave thoughtful answers and explained your decisions clearly.',
+            'You walked through your experience with good detail.',
+            'You shared your approach clearly and stayed consistent throughout.',
+          ]
+        : userResponses > 6
+          ? [
+              'You did a good job walking through your experience.',
+              'You gave solid responses across the conversation.',
+              'You stayed clear and steady throughout the interview.',
+            ]
+          : [
+              'You gave a clear overview of your background and approach.',
+              'You did well walking through your experience.',
+              'You shared your thinking in a clear and professional way.',
+            ];
+
+    const nextSteps = [
+      'I am going to review your responses now.',
+      'I will evaluate your responses now.',
+      'I am going to put your assessment together now.',
+    ];
+
+    const handoffs = [
+      'You will see your assessment shortly.',
+      'Your assessment will be ready in a moment.',
+      'You will be taken to your assessment shortly.',
+    ];
+
+    const pick = (options: string[], seed: number) => options[seed % options.length];
+    const seed = userResponses + answerLength;
+
+    return [
+      pick(openers, seed),
+      pick(reflections, seed + 1),
+      pick(nextSteps, seed + 2),
+      pick(handoffs, seed + 3),
+    ].join(' ');
+  }, [messages]);
+
+  const waitForAudioPlayback = useCallback(() => {
+    const audio = audioRef.current;
+    if (!audio || !audio.src || audio.paused || audio.ended) {
+      return Promise.resolve();
+    }
+
+    return new Promise<void>((resolve) => {
+      const finish = () => {
+        audio.removeEventListener('ended', finish);
+        audio.removeEventListener('error', finish);
+        resolve();
+      };
+
+      audio.addEventListener('ended', finish, { once: true });
+      audio.addEventListener('error', finish, { once: true });
+    });
+  }, []);
 
   const unregisterPlaybackRetry = useCallback(() => {
     if (typeof window === 'undefined' || !interactionRetryHandlerRef.current) return;
@@ -151,6 +226,25 @@ export default function InterviewRoom() {
     }
   }, [stopCurrentAudio, unregisterPlaybackRetry]);
 
+  const runClosingSequence = useCallback(async (latestAnswer: string) => {
+    const closingText = buildClosingMessage(latestAnswer);
+    setClosingStatus('Wrapping up your interview...');
+    setMessages((prev) => [...prev, { role: 'assistant', content: closingText }]);
+    promptReadyAtRef.current = Date.now();
+
+    await speakResponse(closingText);
+    await waitForAudioPlayback();
+
+    if (!isMountedRef.current) return;
+
+    setClosingStatus('Generating your assessment...');
+    await sleep(1000);
+
+    if (!isMountedRef.current) return;
+
+    router.push(`/analytics?sessionId=${sessionId}`);
+  }, [buildClosingMessage, router, sessionId, sleep, speakResponse, waitForAudioPlayback]);
+
   useEffect(() => {
     isMountedRef.current = true;
     const storedSession = localStorage.getItem('sessionId');
@@ -251,7 +345,7 @@ export default function InterviewRoom() {
   };
 
   const handleVoiceSubmit = async (transcript: string, audioMeta: AudioMetaPayload) => {
-    if (!transcript.trim() || loading || isSpeaking) return;
+    if (!transcript.trim() || loading || isSpeaking || Boolean(closingStatus)) return;
 
     setMessages((prev) => [...prev, { role: 'user', content: transcript }]);
     setLoading(true);
@@ -260,17 +354,29 @@ export default function InterviewRoom() {
       ? [...messages].reverse().find((message) => message.role === 'assistant')?.content || ''
       : '';
 
-    try {
-      const nextQuestionPromise = fetch(`${BACKEND_URL}/api/next-question`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId, answer: transcript }),
-      });
+    const isClosingPhase = phase === 'closing';
 
+    try {
       const analyzePromise = fetch(`${BACKEND_URL}/api/analyze-response`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sessionId, phase, question: currentQuestion, answer: transcript, audioMeta }),
+      });
+
+      if (isClosingPhase) {
+        const resAnalyze = await analyzePromise;
+        if (resAnalyze.ok) {
+          await resAnalyze.json();
+        }
+
+        await runClosingSequence(transcript);
+        return;
+      }
+
+      const nextQuestionPromise = fetch(`${BACKEND_URL}/api/next-question`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId, answer: transcript }),
       });
 
       const [resNext, resAnalyze] = await Promise.all([nextQuestionPromise, analyzePromise]);
@@ -293,6 +399,7 @@ export default function InterviewRoom() {
       console.error(error);
       setMessages((prev) => [...prev, { role: 'system', content: 'Connection error while fetching AI response.' }]);
       setIsSpeaking(false);
+      setClosingStatus(null);
     } finally {
       setLoading(false);
     }
@@ -352,7 +459,7 @@ export default function InterviewRoom() {
             </div>
           ))}
 
-          {(loading || isConverting) && (
+          {(loading || isConverting || closingStatus) && (
             <div className="flex justify-start animate-in fade-in duration-300">
               <div className="bg-[#13161F]/40 border border-slate-800/50 rounded-2xl rounded-tl-none p-6 flex flex-col items-center justify-center gap-4 min-w-[160px] backdrop-blur-sm">
                 <div className="flex gap-2">
@@ -361,7 +468,7 @@ export default function InterviewRoom() {
                   <div className="w-2 h-2 rounded-full bg-indigo-300 animate-[bounce_1s_infinite_400ms]"></div>
                 </div>
                 <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
-                  {isConverting ? 'Transcribing...' : 'Thinking...'}
+                  {closingStatus || (isConverting ? 'Transcribing...' : 'Thinking...')}
                 </span>
               </div>
             </div>
@@ -375,7 +482,7 @@ export default function InterviewRoom() {
         <div className="max-w-3xl mx-auto flex flex-col items-center relative">
 
           {/* Speaking/Recording Indicator Overlay */}
-          <div className={`absolute -top-16 left-1/2 -translate-x-1/2 transition-all duration-300 ${isSpeaking || isRecording || isConverting ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
+          <div className={`absolute -top-16 left-1/2 -translate-x-1/2 transition-all duration-300 ${isSpeaking || isRecording || isConverting || closingStatus ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
             <div className="flex items-center gap-3 px-6 py-2 rounded-full bg-slate-900/90 border border-slate-700/50 shadow-2xl backdrop-blur-xl">
               <div className="flex gap-1 items-center">
                 <div className={`w-1 h-3 bg-indigo-500 rounded-full ${isSpeaking || isRecording ? 'animate-[stretch_0.5s_infinite_alternate]' : ''}`}></div>
@@ -383,14 +490,14 @@ export default function InterviewRoom() {
                 <div className={`w-1 h-2 bg-indigo-400 rounded-full ${isSpeaking || isRecording ? 'animate-[stretch_0.5s_infinite_alternate_0.2s]' : ''}`}></div>
               </div>
               <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">
-                {isSpeaking ? 'Interviewer Speaking' : isRecording ? 'Listening...' : 'Processing'}
+                {closingStatus || (isSpeaking ? 'Interviewer Speaking' : isRecording ? 'Listening...' : 'Processing')}
               </span>
             </div>
           </div>
 
           <button
             onClick={toggleRecording}
-            disabled={loading || isConverting || isSpeaking}
+            disabled={loading || isConverting || isSpeaking || Boolean(closingStatus)}
             className={`group relative w-16 h-16 md:w-20 md:h-20 rounded-full flex items-center justify-center transition-all duration-500 ${isRecording
                 ? 'bg-red-500 shadow-[0_0_40px_rgba(239,68,68,0.4)] scale-110'
                 : 'bg-indigo-600 hover:bg-indigo-500 shadow-[0_0_30px_rgba(79,70,229,0.3)] hover:shadow-[0_0_50px_rgba(79,70,229,0.5)]'
@@ -410,7 +517,7 @@ export default function InterviewRoom() {
           </button>
 
           <div className="mt-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-            {isSpeaking ? 'Please wait...' : isRecording ? 'Click to finish' : 'Tap to start speaking'}
+            {closingStatus ? closingStatus : isSpeaking ? 'Please wait...' : isRecording ? 'Click to finish' : 'Tap to start speaking'}
           </div>
         </div>
       </div>
