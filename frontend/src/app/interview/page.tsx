@@ -48,58 +48,6 @@ export default function InterviewRoom() {
     window.setTimeout(resolve, ms);
   }), []);
 
-  const buildClosingMessage = useCallback((latestAnswer: string) => {
-    const userResponses = messages.filter((message) => message.role === 'user').length + 1;
-    const answerLength = latestAnswer.trim().split(/\s+/).filter(Boolean).length;
-
-    const openers = [
-      'Alright, that brings us to the end of the interview.',
-      'That brings us to the end of our interview.',
-      'Alright, we have reached the end of the interview.',
-    ];
-
-    const reflections =
-      answerLength > 45
-        ? [
-            'You gave thoughtful answers and explained your decisions clearly.',
-            'You walked through your experience with good detail.',
-            'You shared your approach clearly and stayed consistent throughout.',
-          ]
-        : userResponses > 6
-          ? [
-              'You did a good job walking through your experience.',
-              'You gave solid responses across the conversation.',
-              'You stayed clear and steady throughout the interview.',
-            ]
-          : [
-              'You gave a clear overview of your background and approach.',
-              'You did well walking through your experience.',
-              'You shared your thinking in a clear and professional way.',
-            ];
-
-    const nextSteps = [
-      'I am going to review your responses now.',
-      'I will evaluate your responses now.',
-      'I am going to put your assessment together now.',
-    ];
-
-    const handoffs = [
-      'You will see your assessment shortly.',
-      'Your assessment will be ready in a moment.',
-      'You will be taken to your assessment shortly.',
-    ];
-
-    const pick = (options: string[], seed: number) => options[seed % options.length];
-    const seed = userResponses + answerLength;
-
-    return [
-      pick(openers, seed),
-      pick(reflections, seed + 1),
-      pick(nextSteps, seed + 2),
-      pick(handoffs, seed + 3),
-    ].join(' ');
-  }, [messages]);
-
   const waitForAudioPlayback = useCallback(() => {
     const audio = audioRef.current;
     if (!audio || !audio.src || audio.paused || audio.ended) {
@@ -227,12 +175,27 @@ export default function InterviewRoom() {
   }, [stopCurrentAudio, unregisterPlaybackRetry]);
 
   const runClosingSequence = useCallback(async (latestAnswer: string) => {
-    const closingText = buildClosingMessage(latestAnswer);
     setClosingStatus('Wrapping up your interview...');
+
+    const res = await fetch(`${BACKEND_URL}/api/closing-message`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId, answer: latestAnswer }),
+    });
+
+    const data = await res.json() as { message?: string; voice?: VoicePayload; error?: string };
+    if (!res.ok || !data.message) {
+      throw new Error(data.error || 'Failed to generate closing message');
+    }
+
+    const closingText = data.message;
+
     setMessages((prev) => [...prev, { role: 'assistant', content: closingText }]);
     promptReadyAtRef.current = Date.now();
 
-    await speakResponse(closingText);
+    if (data.voice?.enabled) {
+      await speakResponse(data.voice.text || closingText);
+    }
     await waitForAudioPlayback();
 
     if (!isMountedRef.current) return;
@@ -243,7 +206,7 @@ export default function InterviewRoom() {
     if (!isMountedRef.current) return;
 
     router.push(`/analytics?sessionId=${sessionId}`);
-  }, [buildClosingMessage, router, sessionId, sleep, speakResponse, waitForAudioPlayback]);
+  }, [router, sessionId, sleep, speakResponse, waitForAudioPlayback]);
 
   useEffect(() => {
     isMountedRef.current = true;

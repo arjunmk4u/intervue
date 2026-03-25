@@ -4,7 +4,7 @@ import crypto from 'crypto';
 import Session, { IMessage } from '../models/Session';
 import Resume from '../models/Resume';
 import { parsePdfToText, extractResumeData } from '../services/resume-parser';
-import { generateNextQuestion } from '../services/gpt-service';
+import { generateClosingMessage, generateNextQuestion } from '../services/gpt-service';
 import { advancePhaseIfNeeded } from '../interview-engine/phase-controller';
 import { evaluateResponse } from '../analysis-engine/evaluation.service';
 import { analyzeBehavioral, generateCoachingTip } from '../analysis-engine/behavioral.service';
@@ -178,6 +178,54 @@ router.post('/analyze-response', async (req, res) => {
   } catch (error) {
     console.error('Analyze response error:', error);
     res.status(500).json({ error: 'Failed to analyze response' });
+  }
+});
+
+router.post('/closing-message', async (req, res) => {
+  try {
+    const { sessionId, answer } = req.body;
+
+    if (!sessionId || !answer) {
+      return res.status(400).json({ error: 'sessionId and answer are required' });
+    }
+
+    const session = await Session.findOne({ sessionId });
+    if (!session) return res.status(404).json({ error: 'Session not found' });
+
+    const alreadyHasAnswerInHistory = session.history.some(
+      (message) =>
+        message.role === 'user' &&
+        message.content === answer,
+    );
+
+    if (!alreadyHasAnswerInHistory) {
+      session.history.push({
+        role: 'user',
+        content: answer,
+        timestamp: new Date(),
+      } as IMessage);
+    }
+
+    const closingMessage = await generateClosingMessage(session);
+
+    session.history.push({
+      role: 'assistant',
+      content: closingMessage,
+      timestamp: new Date(),
+    } as IMessage);
+
+    await session.save();
+
+    res.json({
+      message: closingMessage,
+      voice: {
+        enabled: true,
+        text: closingMessage,
+      },
+    });
+  } catch (error) {
+    console.error('Closing message error:', error);
+    res.status(500).json({ error: 'Failed to generate closing message' });
   }
 });
 

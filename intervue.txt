@@ -1,0 +1,442 @@
+Intervue Application Architecture, Engine, and Flow
+
+1. Overview
+
+Intervue is a voice-first mock interview system with three main layers:
+
+- Frontend: Next.js app in frontend/src/app
+- Backend API: Express + TypeScript app in backend/src
+- Data layer: MongoDB with session and resume documents
+
+The application simulates a live technical interview, records the candidate's spoken answers, transcribes them, generates the next interviewer prompt with an LLM, evaluates each response, and produces a final analytics report.
+
+
+2. High-Level Architecture
+
+Frontend responsibilities:
+- Start a new interview session
+- Upload an optional resume
+- Record microphone audio in the browser
+- Send audio for transcription
+- Show the chat-style interview UI
+- Play interviewer speech using backend-generated TTS audio
+- Route the user to the final analytics page
+
+Backend responsibilities:
+- Create and persist interview sessions
+- Parse uploaded resumes into structured data
+- Generate next interview questions with an LLM
+- Generate the final closing message with an LLM
+- Transcribe audio via Deepgram
+- Convert interviewer text to speech via Edge TTS
+- Evaluate answers and build coaching/report data
+
+Database responsibilities:
+- Store session metadata
+- Store conversation history
+- Store resume data
+- Store per-answer evaluation records
+
+
+3. Main Modules
+
+Frontend pages:
+- frontend/src/app/page.tsx
+  This is the setup page. It collects target role, experience level, and an optional resume, then starts the session.
+
+- frontend/src/app/interview/page.tsx
+  This is the live interview room. It manages recording, sending audio, rendering messages, tracking the current phase, and playing interviewer voice responses.
+
+- frontend/src/app/analytics/page.tsx
+  This page fetches the final report and renders the overall assessment, per-answer reviews, strengths, weaknesses, recommendations, and speaking evidence.
+
+Backend entry point:
+- backend/src/index.ts
+  Starts the Express server, connects to MongoDB, and mounts:
+  - /api for interview/session/report routes
+  - /api/transcribe for speech-to-text
+  - /api/voice for text-to-speech
+
+Backend route modules:
+- backend/src/routes/interview.ts
+  Handles session creation, resume upload, next question generation, answer analysis, closing message generation, and final report delivery.
+
+- backend/src/routes/transcribe.ts
+  Accepts recorded audio and sends it to Deepgram for transcription.
+
+- backend/src/voice/voice.routes.ts
+  Exposes the TTS endpoint used by the frontend to play interviewer speech.
+
+
+4. Data Model
+
+The primary session model is in backend/src/models/Session.ts.
+
+Each session stores:
+- sessionId
+- domain
+- experienceLevel
+- current phase
+- questionIndex
+- conversation history
+- saved evaluations for each answered question
+- timestamps
+
+The history array stores interviewer and user messages so the interview can remain contextual over time.
+
+The resume model stores:
+- original file name
+- extracted raw text
+- structured resume data such as skills, projects, experience, education, and summary
+
+
+5. Interview Engine
+
+The interview engine is mainly driven by:
+- backend/src/interview-engine/prompt-builder.ts
+- backend/src/interview-engine/phase-controller.ts
+- backend/src/services/gpt-service.ts
+
+5.1 Prompt builder
+
+prompt-builder.ts creates the system prompt for the interviewer LLM. It combines:
+- target role/domain
+- interview phase
+- experience level
+- optional structured resume data
+- conversation rules for realism and brevity
+
+Each phase changes the interviewer behavior:
+- intro: asks about background and motivation
+- resume: digs into projects, challenges, and skills
+- technical: asks domain-specific technical questions
+- behavioral: explores soft skills and culture-fit themes
+- situational: asks hypothetical decision-making questions
+- closing: asks final wrap-up style questions
+
+The prompt also enforces important constraints:
+- one question at a time
+- conversational style
+- no filler openings like "Alright" or "Great"
+- act like a real interviewer, not a chatbot tutor
+
+5.2 Phase controller
+
+phase-controller.ts acts like a lightweight state machine.
+
+It defines an ordered sequence:
+- intro
+- resume
+- technical
+- behavioral
+- situational
+- closing
+
+It also defines how many questions are asked in each phase before advancing:
+- intro: 1
+- resume: 3
+- technical: 3
+- behavioral: 2
+- situational: 2
+- closing: 1
+
+When a user answer is submitted, the backend increments questionIndex and calls advancePhaseIfNeeded(session). If the current phase has reached its limit, the phase advances and the question index resets.
+
+5.3 LLM generation service
+
+gpt-service.ts is the main generation layer.
+
+It currently uses Groq with the llama-3.3-70b-versatile model for:
+- next-question generation
+- closing-message generation
+
+How it works:
+- builds the system prompt
+- includes a limited slice of recent history to save context
+- requests the next interviewer response
+- sanitizes common filler openings
+
+The closing message path is similar, but instead of asking another question, it creates a short personalized wrap-up based on recent interview history.
+
+
+6. Resume Intelligence
+
+The resume path is implemented in:
+- backend/src/services/resume-parser.ts
+
+Flow:
+- the user optionally uploads a resume from the home page
+- backend extracts raw PDF text with pdf-parse
+- the raw text is sent to Groq
+- the LLM returns structured JSON with:
+  - skills
+  - projects
+  - experience
+  - education
+  - summary
+
+That structured data is later injected into the interview prompt so resume-based questions become more personalized.
+
+
+7. Live Voice Interview Flow
+
+This is the core runtime path of the app.
+
+Step 1: Session setup
+- The frontend setup page posts to /api/start-session
+- The backend creates a Session document
+- The backend immediately generates the first interviewer question
+- The frontend stores sessionId, firstQuestion, and phase in localStorage
+- The user is routed to /interview
+
+Step 2: Initial interviewer turn
+- interview/page.tsx loads session data from localStorage
+- The first interviewer message is displayed
+- The frontend calls /api/voice/speak to get synthesized audio
+- The browser plays the interviewer voice
+
+Step 3: Candidate records an answer
+- The browser uses MediaRecorder and getUserMedia
+- When recording stops, the audio blob is sent to /api/transcribe
+- The frontend also calculates:
+  - duration of the answer
+  - latency before the candidate started speaking
+
+Step 4: Speech-to-text
+- /api/transcribe forwards the audio to Deepgram
+- Deepgram returns a transcript
+- The transcript is sent into the main answer handler
+
+Step 5: Parallel answer processing
+- The frontend appends the user's transcript to the UI
+- It sends the answer to /api/analyze-response
+- If the current phase is not closing, it also sends the answer to /api/next-question
+
+This means two things happen around the same time:
+- evaluation of the answer
+- generation of the next interviewer prompt
+
+Step 6: Evaluation pipeline
+- /api/analyze-response runs multiple analysis functions
+- It stores a full InterviewEvaluationRecord in the session
+
+Step 7: Next question generation
+- /api/next-question appends the user answer to history
+- It increments the phase counter
+- It loads resume data if available
+- It generates the next question with the LLM
+- It stores that assistant message in history
+- It returns both text and voice payload info
+
+Step 8: Voice playback
+- The frontend adds the assistant message to the chat
+- It requests MP3 audio from /api/voice/speak
+- It waits for playback to finish before letting the user speak again
+
+Step 9: Closing flow
+- When the current phase is closing, the frontend still analyzes the last answer
+- Then it calls /api/closing-message
+- The backend generates a personalized wrap-up from session history
+- The frontend speaks that message
+- The app redirects to /analytics?sessionId=...
+
+
+8. Analysis Engine
+
+The analysis engine lives in backend/src/analysis-engine.
+
+Its job is not to drive the interview. Its job is to score and summarize the candidate's answers after each response.
+
+Main parts:
+
+8.1 Technical evaluation
+- File: evaluation.service.ts
+- Uses Groq to return strict JSON
+- Produces numeric scores for:
+  - clarity
+  - depth
+  - relevance
+  - structure
+  - confidence
+- Also returns:
+  - strengths
+  - weaknesses
+  - suggestions
+
+If the LLM fails, the service returns safe default values instead of crashing the whole interview.
+
+8.2 Behavioral evaluation
+- File: behavioral.service.ts
+- Uses Groq to score:
+  - leadership
+  - ownership
+  - problem-solving
+  - communication
+
+There is also a calibration layer after the LLM response. This is important because it reduces fake optimism.
+
+Example:
+- if the answer does not actually contain leadership evidence, the score is capped
+- intro questions do not automatically imply strong ownership or problem-solving
+
+This makes the behavioral engine more grounded than raw model output alone.
+
+8.3 Coaching tips
+- Also in behavioral.service.ts
+- Generates one short actionable tip per answer
+- These are later surfaced in the analytics page and recommendation engine
+
+8.4 Speech analysis
+- File: speech.service.ts
+- This is heuristic, not LLM-based
+- Uses transcript text plus timing metadata
+
+It computes:
+- latency
+- speech rate
+- filler-word count
+- confidence signal
+
+This is a lightweight engine that complements the LLM-based evaluation with measurable speaking behavior.
+
+
+9. Voice Engine
+
+The voice layer is in backend/src/voice.
+
+Flow:
+- frontend sends interviewer text to /api/voice/speak
+- voice.controller.ts validates the request
+- the request is passed through a queue
+- tts.service.ts uses Edge TTS with the voice en-US-JennyNeural
+- the backend returns MP3 audio
+- the frontend loads the blob into a hidden audio element and plays it
+
+Important design detail:
+- tts.service.ts rewrites some prompt styles into more conversational spoken phrasing
+- It also splits longer sentences to sound more natural in speech
+
+So the voice engine is not just "read text aloud"; it lightly humanizes the wording for spoken delivery.
+
+
+10. Final Report Engine
+
+The report logic is in:
+- backend/src/analysis-engine/scoring.service.ts
+- frontend/src/app/analytics/page.tsx
+
+10.1 Backend aggregation
+
+calculateOverallScore(evaluations) builds the final report from all saved answer-level records.
+
+It computes:
+- average technical metrics
+- average behavioral metrics
+- average speech metrics
+- overall score out of 100
+- completed phases
+- repeated strengths
+- repeated weaknesses
+- recommendations
+- question-by-question review entries
+- technical evidence summary
+- speaking evidence summary
+
+The overall score is weighted:
+- 65% technical evaluation
+- 25% behavioral evaluation
+- 10% speaking metrics, if available
+
+10.2 Recommendation engine
+
+The recommendation engine is rule-based.
+
+It inspects low averages and creates targeted actions such as:
+- go deeper technically
+- improve structure
+- answer the asked question first
+- show stronger problem-solving evidence
+- reduce hesitation
+- adjust speaking pace
+
+It also merges in saved coaching tips from individual answers.
+
+10.3 Frontend analytics rendering
+
+The analytics page fetches /api/final-report and renders:
+- summary chips
+- top metrics
+- repeated strengths and weaknesses
+- question-level reviews
+- recommendations
+- speaking evidence
+- technical evidence
+
+This page is intentionally session-based, meaning it only reflects the interview data actually captured in that session.
+
+
+11. End-to-End Request Flow Summary
+
+The core system loop is:
+
+1. User configures interview on the home page
+2. Backend creates session and first question
+3. Frontend enters interview room and speaks the first question
+4. User records spoken answer
+5. Backend transcribes answer
+6. Backend analyzes answer
+7. Backend generates next question
+8. Frontend plays interviewer voice
+9. Process repeats across phases
+10. Backend generates a final closing message
+11. Analytics page shows the final report
+
+
+12. What Makes This App an "Engine" Instead of Just a Chat UI
+
+This application is more than a normal chat wrapper because it combines several coordinated engines:
+
+- State engine
+  Controls interview phases and progression.
+
+- Prompt engine
+  Builds structured role-aware prompts using domain, experience level, resume data, and recent history.
+
+- Voice engine
+  Turns interviewer text into playable speech and synchronizes playback with UI state.
+
+- Speech pipeline
+  Records audio, transcribes it, and extracts response timing signals.
+
+- Evaluation engine
+  Scores answers technically and behaviorally, then stores rich evaluation records.
+
+- Report engine
+  Aggregates all answer-level evaluations into a final evidence-based assessment.
+
+These pieces together create a guided interview simulation instead of a free-form assistant conversation.
+
+
+13. Current Design Strengths
+
+- Clear separation between interview generation and answer analysis
+- Session persistence through MongoDB
+- Resume-aware personalization
+- Voice-first interaction model
+- Phase-based interview orchestration
+- Hybrid use of LLM reasoning plus deterministic rules
+- Evidence-based reporting instead of a single vague summary
+
+
+14. Practical Mental Model
+
+The easiest way to think about Intervue is this:
+
+- The frontend is the live interview room
+- MongoDB is the memory
+- The interview engine decides what to ask next
+- The analysis engine decides how well the answer performed
+- The voice pipeline makes the interviewer feel live
+- The analytics page turns all saved answer evidence into a final report
+
+That is the overall architecture, engine design, and runtime flow of the application.

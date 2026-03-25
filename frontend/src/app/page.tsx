@@ -175,9 +175,9 @@ export default function Home() {
               </div>
 
               <div className="group">
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest block mb-2 transition-colors flex justify-between">
+                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest  mb-2 transition-colors flex justify-between">
                   Candidate Resume
-                  <span className="text-slate-600 text-[10px] lowercase normal-case">Optional</span>
+                  <span className="text-slate-600 text-[10px]  normal-case">Optional</span>
                 </label>
                 <div className={`relative border border-dashed rounded-xl p-6 text-center transition-all duration-300 cursor-pointer ${file ? 'border-cyan-400 bg-cyan-400/5' : 'border-slate-700 bg-[#0B0E14]/50 hover:border-slate-500'}`}>
                   <input 
