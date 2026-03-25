@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 
 interface Message {
@@ -11,6 +11,11 @@ interface Message {
 interface VoicePayload {
   enabled?: boolean;
   text?: string;
+}
+
+interface AudioMetaPayload {
+  duration: number | null;
+  latency: number | null;
 }
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
@@ -29,20 +34,23 @@ export default function InterviewRoom() {
   const interactionRetryHandlerRef = useRef<(() => void) | null>(null);
   const playRequestIdRef = useRef(0);
   const initialSpeakRef = useRef<boolean>(false);
+  const recordingStartedAtRef = useRef<number | null>(null);
+  const promptReadyAtRef = useRef<number | null>(null);
 
   const [isRecording, setIsRecording] = useState(false);
   const [isConverting, setIsConverting] = useState(false);
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
 
-  const unregisterPlaybackRetry = () => {
+  const unregisterPlaybackRetry = useCallback(() => {
     if (typeof window === 'undefined' || !interactionRetryHandlerRef.current) return;
 
     window.removeEventListener('pointerdown', interactionRetryHandlerRef.current);
     window.removeEventListener('keydown', interactionRetryHandlerRef.current);
     interactionRetryHandlerRef.current = null;
-  };
+  }, []);
 
-  const stopCurrentAudio = () => {
+  const stopCurrentAudio = useCallback(() => {
     const audio = audioRef.current;
     if (!audio) return;
 
@@ -50,7 +58,7 @@ export default function InterviewRoom() {
     audio.removeAttribute('src');
     audio.load();
     audio.currentTime = 0;
-  };
+  }, []);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -59,7 +67,7 @@ export default function InterviewRoom() {
     };
   }, []);
 
-  const speakResponse = async (text: string): Promise<void> => {
+  const speakResponse = useCallback(async (text: string): Promise<void> => {
     if (!isMountedRef.current) return;
 
     playRequestIdRef.current += 1;
@@ -93,32 +101,32 @@ export default function InterviewRoom() {
         return;
       }
 
-       const data = await res.json() as { audioUrl?: string | null; audioBase64?: string | null; mimeType?: string };
-       
-       if (!isMountedRef.current || requestId !== playRequestIdRef.current) {
-         console.warn(`[Voice] Request ${requestId} superseded or component unmounted.`);
-         return;
-       }
+      const data = await res.json() as { audioUrl?: string | null; audioBase64?: string | null; mimeType?: string };
 
-       if (!data.audioBase64) {
-         console.error('[Voice] No audio data received');
-         setIsSpeaking(false);
-         return;
-       }
+      if (!isMountedRef.current || requestId !== playRequestIdRef.current) {
+        console.warn(`[Voice] Request ${requestId} superseded or component unmounted.`);
+        return;
+      }
 
-       // Convert base64 to blob and create object URL
-       const binary = atob(data.audioBase64);
-       const bytes = new Uint8Array(binary.length);
-       for (let i = 0; i < binary.length; i++) {
-         bytes[i] = binary.charCodeAt(i);
-       }
-       const blob = new Blob([bytes], { type: data.mimeType || 'audio/mpeg' });
-       const sourceUrl = URL.createObjectURL(blob);
-       console.log(`[Voice] Playing from base64 data (ID: ${requestId})`);
+      if (!data.audioBase64) {
+        console.error('[Voice] No audio data received');
+        setIsSpeaking(false);
+        return;
+      }
 
-       audio.src = sourceUrl;
-       audio.currentTime = 0;
-       audio.load();
+      // Convert base64 to blob and create object URL
+      const binary = atob(data.audioBase64);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) {
+        bytes[i] = binary.charCodeAt(i);
+      }
+      const blob = new Blob([bytes], { type: data.mimeType || 'audio/mpeg' });
+      const sourceUrl = URL.createObjectURL(blob);
+      console.log(`[Voice] Playing from base64 data (ID: ${requestId})`);
+
+      audio.src = sourceUrl;
+      audio.currentTime = 0;
+      audio.load();
 
       try {
         await audio.play();
@@ -139,7 +147,7 @@ export default function InterviewRoom() {
         setIsSpeaking(false);
       }
     }
-  };
+  }, [stopCurrentAudio, unregisterPlaybackRetry]);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -160,6 +168,7 @@ export default function InterviewRoom() {
     if (firstQuestion && !initialSpeakRef.current) {
       initialSpeakRef.current = true;
       setMessages([{ role: 'assistant', content: firstQuestion }]);
+      promptReadyAtRef.current = Date.now();
       void speakResponse(firstQuestion);
     }
 
@@ -167,13 +176,13 @@ export default function InterviewRoom() {
       isMountedRef.current = false;
       unregisterPlaybackRetry();
 
-      if (mediaRecorder) {
-        mediaRecorder.stream.getTracks().forEach((track) => track.stop());
+      if (mediaRecorderRef.current) {
+        mediaRecorderRef.current.stream.getTracks().forEach((track) => track.stop());
       }
 
       stopCurrentAudio();
     };
-  }, [router]);
+  }, [router, speakResponse, stopCurrentAudio, unregisterPlaybackRetry]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -183,6 +192,7 @@ export default function InterviewRoom() {
     if (isRecording && mediaRecorder) {
       mediaRecorder.stop();
       mediaRecorder.stream.getTracks().forEach((track) => track.stop());
+      mediaRecorderRef.current = null;
       setIsRecording(false);
       return;
     }
@@ -199,6 +209,13 @@ export default function InterviewRoom() {
       recorder.onstop = async () => {
         setIsConverting(true);
         const audioBlob = new Blob(chunks, { type: recorder.mimeType });
+        const startedAt = recordingStartedAtRef.current;
+        const duration =
+          startedAt !== null ? Number(((Date.now() - startedAt) / 1000).toFixed(1)) : null;
+        const latency =
+          promptReadyAtRef.current !== null && startedAt !== null
+            ? Number(Math.max(0, (startedAt - promptReadyAtRef.current) / 1000).toFixed(1))
+            : null;
         const formData = new FormData();
         formData.append('audio', audioBlob, 'record.webm');
 
@@ -209,16 +226,20 @@ export default function InterviewRoom() {
           });
           const data = await res.json();
           if (data.transcript) {
-            void handleVoiceSubmit(data.transcript);
+            void handleVoiceSubmit(data.transcript, { duration, latency });
           }
         } catch (err) {
           console.error('Transcription error:', err);
         } finally {
+          recordingStartedAtRef.current = null;
+          mediaRecorderRef.current = null;
           setIsConverting(false);
         }
       };
 
       recorder.start();
+      recordingStartedAtRef.current = Date.now();
+      mediaRecorderRef.current = recorder;
       setMediaRecorder(recorder);
       setIsRecording(true);
     } catch (err) {
@@ -227,7 +248,7 @@ export default function InterviewRoom() {
     }
   };
 
-  const handleVoiceSubmit = async (transcript: string) => {
+  const handleVoiceSubmit = async (transcript: string, audioMeta: AudioMetaPayload) => {
     if (!transcript.trim() || loading || isSpeaking) return;
 
     setMessages((prev) => [...prev, { role: 'user', content: transcript }]);
@@ -247,7 +268,7 @@ export default function InterviewRoom() {
       const analyzePromise = fetch(`${BACKEND_URL}/api/analyze-response`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId, question: currentQuestion, answer: transcript, audioMeta: { duration: 10 } }),
+        body: JSON.stringify({ sessionId, phase, question: currentQuestion, answer: transcript, audioMeta }),
       });
 
       const [resNext, resAnalyze] = await Promise.all([nextQuestionPromise, analyzePromise]);
@@ -261,6 +282,7 @@ export default function InterviewRoom() {
 
       setMessages((prev) => [...prev, { role: 'assistant', content: data.question }]);
       if (data.phase) setPhase(data.phase);
+      promptReadyAtRef.current = Date.now();
 
       if (data.voice?.enabled) {
         await speakResponse(data.voice.text || data.question);
@@ -289,7 +311,7 @@ export default function InterviewRoom() {
           </div>
           <span className="text-xl font-bold tracking-tight text-white font-manrope">Intervue</span>
         </div>
-        
+
         <div className="flex items-center gap-4">
           <div className="hidden md:flex items-center gap-2 px-3 py-1 rounded-full border border-indigo-500/20 bg-indigo-500/10 text-[10px] font-bold text-indigo-300 uppercase tracking-widest">
             <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse"></span>
@@ -310,13 +332,12 @@ export default function InterviewRoom() {
           {messages.map((msg, idx) => (
             <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-in slide-in-from-bottom-4 duration-500 transform-gpu`}>
               <div
-                className={`group relative max-w-[85%] md:max-w-[80%] rounded-2xl p-5 md:p-6 text-base md:text-lg transition-all ${
-                  msg.role === 'user'
+                className={`group relative max-w-[85%] md:max-w-[80%] rounded-2xl p-5 md:p-6 text-base md:text-lg transition-all ${msg.role === 'user'
                     ? 'bg-gradient-to-br from-indigo-600 to-blue-700 text-white rounded-tr-none shadow-[0_10px_30px_-10px_rgba(79,70,229,0.4)]'
                     : msg.role === 'system'
                       ? 'bg-red-950/20 text-red-300 border border-red-900/30 italic w-full text-center py-3'
                       : 'bg-[#13161F]/60 text-slate-200 rounded-tl-none border border-slate-800/50 shadow-xl backdrop-blur-md'
-                }`}
+                  }`}
               >
                 {msg.role === 'assistant' && (
                   <div className="absolute -top-6 left-0 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Interviewer</div>
@@ -350,29 +371,28 @@ export default function InterviewRoom() {
       {/* Control Area - Fixed at Bottom */}
       <div className="relative z-20 pb-10 pt-4 px-6 bg-gradient-to-t from-[#0B0E14] via-[#0B0E14] to-transparent">
         <div className="max-w-3xl mx-auto flex flex-col items-center relative">
-          
+
           {/* Speaking/Recording Indicator Overlay */}
           <div className={`absolute -top-16 left-1/2 -translate-x-1/2 transition-all duration-300 ${isSpeaking || isRecording || isConverting ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
-             <div className="flex items-center gap-3 px-6 py-2 rounded-full bg-slate-900/90 border border-slate-700/50 shadow-2xl backdrop-blur-xl">
-                <div className="flex gap-1 items-center">
-                   <div className={`w-1 h-3 bg-indigo-500 rounded-full ${isSpeaking || isRecording ? 'animate-[stretch_0.5s_infinite_alternate]' : ''}`}></div>
-                   <div className={`w-1 h-5 bg-cyan-400 rounded-full ${isSpeaking || isRecording ? 'animate-[stretch_0.5s_infinite_alternate_0.1s]' : ''}`}></div>
-                   <div className={`w-1 h-2 bg-indigo-400 rounded-full ${isSpeaking || isRecording ? 'animate-[stretch_0.5s_infinite_alternate_0.2s]' : ''}`}></div>
-                </div>
-                <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">
-                  {isSpeaking ? 'Interviewer Speaking' : isRecording ? 'Listening...' : 'Processing'}
-                </span>
-             </div>
+            <div className="flex items-center gap-3 px-6 py-2 rounded-full bg-slate-900/90 border border-slate-700/50 shadow-2xl backdrop-blur-xl">
+              <div className="flex gap-1 items-center">
+                <div className={`w-1 h-3 bg-indigo-500 rounded-full ${isSpeaking || isRecording ? 'animate-[stretch_0.5s_infinite_alternate]' : ''}`}></div>
+                <div className={`w-1 h-5 bg-cyan-400 rounded-full ${isSpeaking || isRecording ? 'animate-[stretch_0.5s_infinite_alternate_0.1s]' : ''}`}></div>
+                <div className={`w-1 h-2 bg-indigo-400 rounded-full ${isSpeaking || isRecording ? 'animate-[stretch_0.5s_infinite_alternate_0.2s]' : ''}`}></div>
+              </div>
+              <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">
+                {isSpeaking ? 'Interviewer Speaking' : isRecording ? 'Listening...' : 'Processing'}
+              </span>
+            </div>
           </div>
 
           <button
             onClick={toggleRecording}
             disabled={loading || isConverting || isSpeaking}
-            className={`group relative w-16 h-16 md:w-20 md:h-20 rounded-full flex items-center justify-center transition-all duration-500 ${
-              isRecording
+            className={`group relative w-16 h-16 md:w-20 md:h-20 rounded-full flex items-center justify-center transition-all duration-500 ${isRecording
                 ? 'bg-red-500 shadow-[0_0_40px_rgba(239,68,68,0.4)] scale-110'
                 : 'bg-indigo-600 hover:bg-indigo-500 shadow-[0_0_30px_rgba(79,70,229,0.3)] hover:shadow-[0_0_50px_rgba(79,70,229,0.5)]'
-            } disabled:opacity-30 disabled:grayscale disabled:cursor-not-allowed`}
+              } disabled:opacity-30 disabled:grayscale disabled:cursor-not-allowed`}
           >
             {isRecording ? (
               <div className="w-6 h-6 md:w-8 md:h-8 bg-white rounded-sm"></div>
@@ -386,7 +406,7 @@ export default function InterviewRoom() {
               <div className="absolute inset-0 rounded-full border-4 border-white/20 animate-ping opacity-20"></div>
             )}
           </button>
-          
+
           <div className="mt-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
             {isSpeaking ? 'Please wait...' : isRecording ? 'Click to finish' : 'Tap to start speaking'}
           </div>
@@ -398,10 +418,12 @@ export default function InterviewRoom() {
         className="hidden"
         onEnded={() => {
           console.log('[Voice] Audio playback ended');
+          promptReadyAtRef.current = Date.now();
           setIsSpeaking(false);
         }}
         onError={(e) => {
           console.error('[Voice] Audio element error:', e);
+          promptReadyAtRef.current = Date.now();
           setIsSpeaking(false);
         }}
         onLoadedMetadata={(e) => {
@@ -432,13 +454,13 @@ export default function InterviewRoom() {
   );
 }
 
-function base64ToBlob(base64: string, mimeType: string): Blob {
-  const binary = atob(base64);
-  const bytes = new Uint8Array(binary.length);
+// function base64ToBlob(base64: string, mimeType: string): Blob {
+//   const binary = atob(base64);
+//   const bytes = new Uint8Array(binary.length);
 
-  for (let i = 0; i < binary.length; i += 1) {
-    bytes[i] = binary.charCodeAt(i);
-  }
+//   for (let i = 0; i < binary.length; i += 1) {
+//     bytes[i] = binary.charCodeAt(i);
+//   }
 
-  return new Blob([bytes], { type: mimeType });
-}
+//   return new Blob([bytes], { type: mimeType });
+// }

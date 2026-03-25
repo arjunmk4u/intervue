@@ -33,8 +33,7 @@ Select from these topics (ensure variety):
       break;
     case 'closing':
       phaseInstructions = 'Conclude the interview and ask if they have any questions for you.';
-      break;
-  }
+      }
 
   const resumeContext = resumeData 
     ? `Candidate Resume Summary:\nSkills: ${resumeData.skills.join(', ')}\nProjects: ${JSON.stringify(resumeData.projects)}\nExperience: ${JSON.stringify(resumeData.experience)}\n`

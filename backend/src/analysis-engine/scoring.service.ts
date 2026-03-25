@@ -1,138 +1,331 @@
-import { EvaluationResult, BehavioralMetrics, SpeechMetrics, FinalReport } from './types';
+import {
+  BehavioralMetrics,
+  EvaluationScores,
+  FinalReport,
+  InterviewEvaluationRecord,
+  RecommendationItem,
+  SpeechMetrics,
+} from './types';
 
-export function calculateOverallScore(
-  evaluations: { evaluation: EvaluationResult; behavioral: BehavioralMetrics; speech: SpeechMetrics }[]
-): FinalReport {
+export function calculateOverallScore(evaluations: InterviewEvaluationRecord[]): FinalReport {
   if (!evaluations || evaluations.length === 0) {
     return {
       overall_score: 0,
-      percentile: 0,
+      percentile: null,
+      interview_count: 0,
+      completed_phases: [],
       metrics: { clarity: 0, depth: 0, relevance: 0, structure: 0, confidence: 0 },
       behavioral: { leadership: 0, ownership: 0, problem_solving: 0, communication: 0 },
-      speech: { latency: 0, speechRate: 0, confidenceSignal: 'medium' },
+      speech: { latency: null, speechRate: null, confidenceSignal: 'unknown', fillerWordCount: 0 },
       strengths: [],
       weaknesses: [],
-      suggestions: []
+      recommendations: [],
+      question_reviews: [],
+      evidence_summary: {
+        technical: [],
+        speaking: [],
+      },
     };
   }
 
-  const numEvals = evaluations.length;
-  
-  // Aggregate Evaluation Scores
-  let clarityAvg = 0, depthAvg = 0, relevanceAvg = 0, structureAvg = 0, confidenceAvg = 0;
-  // Aggregate Behavioral
-  let leadershipAvg = 0, ownershipAvg = 0, probAvg = 0, commAvg = 0;
-  // Aggregate Speech
-  let latencyAvg = 0, speechRateAvg = 0;
+  const metrics = averageEvaluationScores(evaluations);
+  const behavioral = averageBehavioralScores(evaluations);
+  const speech = averageSpeechScores(evaluations);
+  const overallScore = deriveOverallScore(metrics, behavioral, speech);
 
-  const allSuggestions = new Set<string>();
-  const highSignalStrengths: string[] = [];
-  const highSignalWeaknesses: string[] = [];
-
-  evaluations.forEach(ev => {
-    clarityAvg += ev.evaluation.scores.clarity;
-    depthAvg += ev.evaluation.scores.depth;
-    relevanceAvg += ev.evaluation.scores.relevance;
-    structureAvg += ev.evaluation.scores.structure;
-    confidenceAvg += ev.evaluation.scores.confidence;
-
-    leadershipAvg += ev.behavioral.leadership;
-    ownershipAvg += ev.behavioral.ownership;
-    probAvg += ev.behavioral.problem_solving;
-    commAvg += ev.behavioral.communication;
-
-    latencyAvg += ev.speech.latency;
-    speechRateAvg += ev.speech.speechRate;
-
-    ev.evaluation.suggestions.forEach(s => allSuggestions.add(s));
-  });
-
-  const aggregateEvaluation = {
-    clarity: parseFloat((clarityAvg / numEvals).toFixed(1)),
-    depth: parseFloat((depthAvg / numEvals).toFixed(1)),
-    relevance: parseFloat((relevanceAvg / numEvals).toFixed(1)),
-    structure: parseFloat((structureAvg / numEvals).toFixed(1)),
-    confidence: parseFloat((confidenceAvg / numEvals).toFixed(1))
-  };
-
-  const aggregateBehavioral = {
-    leadership: parseFloat((leadershipAvg / numEvals).toFixed(1)),
-    ownership: parseFloat((ownershipAvg / numEvals).toFixed(1)),
-    problem_solving: parseFloat((probAvg / numEvals).toFixed(1)),
-    communication: parseFloat((commAvg / numEvals).toFixed(1))
-  };
-
-  const aggregateSpeech = {
-    latency: parseFloat((latencyAvg / numEvals).toFixed(1)),
-    speechRate: parseFloat((speechRateAvg / numEvals).toFixed(1)),
-    confidenceSignal: deriveConfidenceSignal(confidenceAvg / numEvals, speechRateAvg / numEvals) as 'high' | 'medium' | 'low'
-  };
-
-  // Base score on semantic (60%) + behavioral (30%) + speech confidence (10%)
-  const pureSemanticAvg = (aggregateEvaluation.clarity + aggregateEvaluation.depth + aggregateEvaluation.relevance + aggregateEvaluation.structure + aggregateEvaluation.confidence) / 5;
-  const pureBehavioralAvg = (aggregateBehavioral.leadership + aggregateBehavioral.ownership + aggregateBehavioral.problem_solving + aggregateBehavioral.communication) / 4;
-  
-  const semanticPoints = (pureSemanticAvg / 10) * 60;
-  const behavioralPoints = (pureBehavioralAvg / 10) * 30;
-  // Let's assume baseline 8 points for speech, latency < 3s gives +2
-  const speechPoints = (aggregateSpeech.latency < 3 ? 10 : 7);
-
-  const rawScore = Math.round(semanticPoints + behavioralPoints + speechPoints);
-
-  // Derive a "Percentile" relative to the raw score using a rough statistical bell curve map
-  // 90+ = 98th, 80-89 = 80-92th, 70-79 = 50-75th
-  let percentile = rawScore;
-  if(rawScore >= 85) percentile = Math.min(99, rawScore + 5);
-  else if (rawScore < 60) percentile = rawScore - 10;
-
-  collectAggregateInsights(aggregateEvaluation, aggregateBehavioral, highSignalStrengths, highSignalWeaknesses);
-
-  const fallbackStrengths = evaluations.flatMap((ev) => ev.evaluation.strengths);
-  const fallbackWeaknesses = evaluations.flatMap((ev) => ev.evaluation.weaknesses);
-
-  const topStrengths = uniqueStrings([...highSignalStrengths, ...fallbackStrengths]).slice(0, 4);
-  const topWeaknesses = uniqueStrings([...highSignalWeaknesses, ...fallbackWeaknesses]).slice(0, 3);
-  const topSuggestions = Array.from(allSuggestions).slice(0, 3);
+  const strengths = uniqueStrings(evaluations.flatMap((entry) => entry.evaluation.strengths)).slice(0, 5);
+  const weaknesses = uniqueStrings(evaluations.flatMap((entry) => entry.evaluation.weaknesses)).slice(0, 5);
+  const recommendations = buildRecommendations(metrics, behavioral, speech, evaluations);
+  const questionReviews = evaluations.map((entry) => ({
+    phase: entry.phase,
+    question: entry.question,
+    answerPreview: truncate(entry.answer, 220),
+    scores: entry.evaluation.scores,
+    behavioral: entry.behavioral,
+    speech: entry.speech,
+    tip: entry.tip,
+    strengths: entry.evaluation.strengths.slice(0, 2),
+    weaknesses: entry.evaluation.weaknesses.slice(0, 2),
+  }));
 
   return {
-    overall_score: rawScore,
-    percentile,
-    metrics: aggregateEvaluation,
-    behavioral: aggregateBehavioral,
-    speech: aggregateSpeech,
-    strengths: topStrengths,
-    weaknesses: topWeaknesses,
-    suggestions: topSuggestions
+    overall_score: overallScore,
+    percentile: null,
+    interview_count: evaluations.length,
+    completed_phases: Array.from(new Set(evaluations.map((entry) => entry.phase))),
+    metrics,
+    behavioral,
+    speech,
+    strengths,
+    weaknesses,
+    recommendations,
+    question_reviews: questionReviews,
+    evidence_summary: {
+      technical: buildTechnicalEvidence(metrics, behavioral, evaluations),
+      speaking: buildSpeakingEvidence(speech, evaluations),
+    },
   };
 }
 
-function collectAggregateInsights(
-  evaluation: FinalReport['metrics'],
-  behavioral: FinalReport['behavioral'],
-  strengths: string[],
-  weaknesses: string[]
-) {
-  if (evaluation.clarity >= 7.5) strengths.push('Your answers were clear and easy to follow.');
-  if (evaluation.structure >= 7.5) strengths.push('You structured responses in a disciplined way.');
-  if (evaluation.relevance >= 7.5) strengths.push('You stayed aligned with what the question was asking.');
-  if (evaluation.depth >= 7.5) strengths.push('You added meaningful detail instead of staying superficial.');
-  if (behavioral.communication >= 7.5) strengths.push('You communicated ideas in a calm, professional manner.');
-  if (behavioral.problem_solving >= 7.5) strengths.push('You showed credible problem-solving only when concrete examples supported it.');
+function averageEvaluationScores(evaluations: InterviewEvaluationRecord[]): EvaluationScores {
+  const totals = evaluations.reduce(
+    (acc, entry) => {
+      acc.clarity += entry.evaluation.scores.clarity;
+      acc.depth += entry.evaluation.scores.depth;
+      acc.relevance += entry.evaluation.scores.relevance;
+      acc.structure += entry.evaluation.scores.structure;
+      acc.confidence += entry.evaluation.scores.confidence;
+      return acc;
+    },
+    { clarity: 0, depth: 0, relevance: 0, structure: 0, confidence: 0 }
+  );
 
-  if (evaluation.clarity <= 5.5) weaknesses.push('Some answers needed clearer wording and sharper takeaways.');
-  if (evaluation.structure <= 5.5) weaknesses.push('Response structure was inconsistent and could be more organized.');
-  if (evaluation.depth <= 5.5) weaknesses.push('Several answers needed more depth, specifics, or technical detail.');
-  if (evaluation.relevance <= 5.5) weaknesses.push('A few responses drifted away from the core question.');
-  if (behavioral.communication <= 5.5) weaknesses.push('Communication felt less polished than it could be under interview pressure.');
-  if (behavioral.problem_solving <= 4.5) weaknesses.push('Problem-solving evidence was limited or not clearly demonstrated in your examples.');
+  return {
+    clarity: average(totals.clarity, evaluations.length),
+    depth: average(totals.depth, evaluations.length),
+    relevance: average(totals.relevance, evaluations.length),
+    structure: average(totals.structure, evaluations.length),
+    confidence: average(totals.confidence, evaluations.length),
+  };
+}
+
+function averageBehavioralScores(evaluations: InterviewEvaluationRecord[]): BehavioralMetrics {
+  const totals = evaluations.reduce(
+    (acc, entry) => {
+      acc.leadership += entry.behavioral.leadership;
+      acc.ownership += entry.behavioral.ownership;
+      acc.problem_solving += entry.behavioral.problem_solving;
+      acc.communication += entry.behavioral.communication;
+      return acc;
+    },
+    { leadership: 0, ownership: 0, problem_solving: 0, communication: 0 }
+  );
+
+  return {
+    leadership: average(totals.leadership, evaluations.length),
+    ownership: average(totals.ownership, evaluations.length),
+    problem_solving: average(totals.problem_solving, evaluations.length),
+    communication: average(totals.communication, evaluations.length),
+  };
+}
+
+function averageSpeechScores(evaluations: InterviewEvaluationRecord[]): SpeechMetrics {
+  const measuredLatency = evaluations.map((entry) => entry.speech.latency).filter(isNumber);
+  const measuredSpeechRate = evaluations.map((entry) => entry.speech.speechRate).filter(isNumber);
+  const totalFillerWords = evaluations.reduce((sum, entry) => sum + (entry.speech.fillerWordCount || 0), 0);
+
+  return {
+    latency: measuredLatency.length ? average(sum(measuredLatency), measuredLatency.length) : null,
+    speechRate: measuredSpeechRate.length ? average(sum(measuredSpeechRate), measuredSpeechRate.length) : null,
+    confidenceSignal: deriveConfidenceSignal(evaluations),
+    fillerWordCount: totalFillerWords,
+  };
+}
+
+function deriveOverallScore(metrics: EvaluationScores, behavioral: BehavioralMetrics, speech: SpeechMetrics): number {
+  const components: Array<{ score: number; weight: number }> = [
+    { score: average(sum(Object.values(metrics)), Object.values(metrics).length), weight: 0.65 },
+    { score: average(sum(Object.values(behavioral)), Object.values(behavioral).length), weight: 0.25 },
+  ];
+
+  const speakingScore = deriveSpeakingScore(speech);
+  if (speakingScore !== null) {
+    components.push({ score: speakingScore, weight: 0.1 });
+  }
+
+  const totalWeight = components.reduce((acc, item) => acc + item.weight, 0);
+  const weightedAverage = components.reduce((acc, item) => acc + item.score * item.weight, 0) / totalWeight;
+
+  return Math.round(weightedAverage * 10);
+}
+
+function deriveSpeakingScore(speech: SpeechMetrics): number | null {
+  const parts: number[] = [];
+
+  if (speech.latency !== null) {
+    if (speech.latency <= 2.5) parts.push(8.5);
+    else if (speech.latency <= 4) parts.push(7);
+    else parts.push(5.5);
+  }
+
+  if (speech.speechRate !== null) {
+    if (speech.speechRate >= 120 && speech.speechRate <= 160) parts.push(8.5);
+    else if (speech.speechRate >= 100 && speech.speechRate <= 175) parts.push(7);
+    else parts.push(5.5);
+  }
+
+  if (speech.confidenceSignal === 'high') parts.push(8.5);
+  else if (speech.confidenceSignal === 'medium') parts.push(7);
+  else if (speech.confidenceSignal === 'low') parts.push(5);
+
+  return parts.length ? average(sum(parts), parts.length) : null;
+}
+
+function deriveConfidenceSignal(evaluations: InterviewEvaluationRecord[]): SpeechMetrics['confidenceSignal'] {
+  const counts = evaluations.reduce(
+    (acc, entry) => {
+      acc[entry.speech.confidenceSignal] += 1;
+      return acc;
+    },
+    { low: 0, medium: 0, high: 0, unknown: 0 }
+  );
+
+  if (counts.high >= counts.medium && counts.high >= counts.low && counts.high > 0) return 'high';
+  if (counts.medium >= counts.low && counts.medium > 0) return 'medium';
+  if (counts.low > 0) return 'low';
+  return 'unknown';
+}
+
+function buildRecommendations(
+  metrics: EvaluationScores,
+  behavioral: BehavioralMetrics,
+  speech: SpeechMetrics,
+  evaluations: InterviewEvaluationRecord[]
+): RecommendationItem[] {
+  const recommendations: RecommendationItem[] = [];
+
+  if (metrics.depth < 6.5) {
+    recommendations.push({
+      title: 'Go deeper technically',
+      reason: `Depth averaged ${metrics.depth}/10 across the interview, which means answers often stopped before implementation detail or trade-offs.`,
+      action: 'For each answer, add one layer on architecture, edge cases, debugging decisions, or trade-offs.',
+      priority: 'high',
+    });
+  }
+
+  if (metrics.structure < 6.5) {
+    recommendations.push({
+      title: 'Tighten answer structure',
+      reason: `Structure averaged ${metrics.structure}/10, so your reasoning may have been harder to track end to end.`,
+      action: 'Use a repeatable flow: context, approach, decision, outcome.',
+      priority: 'high',
+    });
+  }
+
+  if (metrics.relevance < 6.5) {
+    recommendations.push({
+      title: 'Answer the asked question first',
+      reason: `Relevance averaged ${metrics.relevance}/10, which suggests some answers drifted away from the exact prompt.`,
+      action: 'Open with the direct answer first, then expand with supporting detail.',
+      priority: 'high',
+    });
+  }
+
+  if (behavioral.problem_solving < 6.5) {
+    recommendations.push({
+      title: 'Show stronger problem-solving evidence',
+      reason: `Problem-solving averaged ${behavioral.problem_solving}/10 based on the examples you gave.`,
+      action: 'Describe the problem, your diagnosis, the fix, and the measurable result in each example.',
+      priority: 'medium',
+    });
+  }
+
+  if (speech.confidenceSignal === 'low') {
+    recommendations.push({
+      title: 'Reduce hesitation in delivery',
+      reason: 'The recorded answers showed low speaking confidence based on transcript-level filler analysis.',
+      action: 'Pause before technical points instead of speaking while thinking.',
+      priority: 'medium',
+    });
+  }
+
+  if (speech.speechRate !== null && (speech.speechRate < 110 || speech.speechRate > 170)) {
+    recommendations.push({
+      title: 'Adjust speaking pace',
+      reason: `Measured speaking pace averaged ${speech.speechRate} wpm, which is outside the most comfortable interview range.`,
+      action: 'Practice concise technical explanations at a steady pace so details stay understandable.',
+      priority: 'medium',
+    });
+  }
+
+  const storedTips = uniqueStrings(evaluations.map((entry) => entry.tip)).slice(0, 2);
+  storedTips.forEach((tip, index) => {
+    recommendations.push({
+      title: `Interview coaching note ${index + 1}`,
+      reason: 'This was generated during the live interview from one of your actual answers.',
+      action: tip,
+      priority: 'medium',
+    });
+  });
+
+  return uniqueRecommendations(recommendations).slice(0, 6);
+}
+
+function buildTechnicalEvidence(
+  metrics: EvaluationScores,
+  behavioral: BehavioralMetrics,
+  evaluations: InterviewEvaluationRecord[]
+): string[] {
+  const evidence: string[] = [];
+
+  if (metrics.depth >= 7) evidence.push(`Depth stayed relatively strong at ${metrics.depth}/10 across answered questions.`);
+  if (metrics.depth < 6.5) evidence.push(`Depth averaged ${metrics.depth}/10, showing room for more implementation detail and trade-off discussion.`);
+  if (metrics.relevance < 6.5) evidence.push(`Relevance averaged ${metrics.relevance}/10, so some answers likely drifted from the exact question being asked.`);
+  if (metrics.structure < 6.5) evidence.push(`Structure averaged ${metrics.structure}/10, which suggests answers could be more organized from start to finish.`);
+  if (behavioral.problem_solving < 6.5) evidence.push(`Problem-solving evidence averaged ${behavioral.problem_solving}/10 based on the concrete examples used in the interview.`);
+
+  const specificWeaknesses = uniqueStrings(evaluations.flatMap((entry) => entry.evaluation.weaknesses)).slice(0, 3);
+  evidence.push(...specificWeaknesses);
+
+  return evidence.slice(0, 5);
+}
+
+function buildSpeakingEvidence(speech: SpeechMetrics, evaluations: InterviewEvaluationRecord[]): string[] {
+  const evidence: string[] = [];
+
+  if (speech.latency !== null) {
+    evidence.push(`Average answer start latency was ${speech.latency}s based on recorded responses.`);
+  }
+
+  if (speech.speechRate !== null) {
+    evidence.push(`Average speaking rate was ${speech.speechRate} wpm across measured answers.`);
+  }
+
+  if (speech.confidenceSignal !== 'unknown') {
+    evidence.push(`Speaking confidence was assessed as ${speech.confidenceSignal} from the captured interview transcripts.`);
+  }
+
+  if (speech.fillerWordCount > 0) {
+    evidence.push(`Detected ${speech.fillerWordCount} filler-word instances across the interview transcript.`);
+  }
+
+  const speechRelatedWeaknesses = uniqueStrings(
+    evaluations
+      .flatMap((entry) => entry.evaluation.weaknesses)
+      .filter((item) => /communicat|clar|confidence|polished/i.test(item))
+  );
+  evidence.push(...speechRelatedWeaknesses.slice(0, 2));
+
+  return evidence.slice(0, 5);
+}
+
+function uniqueRecommendations(recommendations: RecommendationItem[]): RecommendationItem[] {
+  const seen = new Set<string>();
+  return recommendations.filter((item) => {
+    const key = `${item.title}|${item.action}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 function uniqueStrings(values: string[]): string[] {
   return Array.from(new Set(values.filter(Boolean)));
 }
 
-function deriveConfidenceSignal(confidenceScore: number, speechRate: number): 'high' | 'medium' | 'low' {
-  if (confidenceScore >= 7.5 && speechRate >= 110 && speechRate <= 165) return 'high';
-  if (confidenceScore >= 5.5) return 'medium';
-  return 'low';
+function truncate(value: string, maxLength: number): string {
+  return value.length <= maxLength ? value : `${value.slice(0, maxLength - 3)}...`;
+}
+
+function average(total: number, count: number): number {
+  if (!count) return 0;
+  return Number((total / count).toFixed(1));
+}
+
+function sum(values: number[]): number {
+  return values.reduce((acc, value) => acc + value, 0);
+}
+
+function isNumber(value: number | null): value is number {
+  return typeof value === 'number' && Number.isFinite(value);
 }

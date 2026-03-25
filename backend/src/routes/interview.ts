@@ -10,6 +10,7 @@ import { evaluateResponse } from '../analysis-engine/evaluation.service';
 import { analyzeBehavioral, generateCoachingTip } from '../analysis-engine/behavioral.service';
 import { analyzeSpeech } from '../analysis-engine/speech.service';
 import { calculateOverallScore } from '../analysis-engine/scoring.service';
+import { InterviewEvaluationRecord } from '../analysis-engine/types';
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
@@ -140,7 +141,7 @@ router.post('/next-question', async (req, res) => {
 
 router.post('/analyze-response', async (req, res) => {
   try {
-    const { sessionId, question, answer, audioMeta } = req.body;
+    const { sessionId, question, answer, audioMeta, phase } = req.body;
     
     if (!sessionId || !question || !answer) {
       return res.status(400).json({ error: 'sessionId, question, and answer required' });
@@ -160,7 +161,17 @@ router.post('/analyze-response', async (req, res) => {
 
     // Save to session
     if (!session.evaluations) session.evaluations = [];
-    session.evaluations.push({ evaluation, behavioral, speech });
+    const record: InterviewEvaluationRecord = {
+      phase: typeof phase === 'string' && phase.trim() ? phase : session.phase,
+      question,
+      answer,
+      evaluation,
+      behavioral,
+      speech,
+      tip,
+      createdAt: new Date(),
+    };
+    session.evaluations.push(record);
     await session.save();
 
     res.json({ evaluation, behavioral, speech, tip });

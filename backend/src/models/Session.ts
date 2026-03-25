@@ -1,4 +1,5 @@
 import mongoose, { Schema, Document } from 'mongoose';
+import { InterviewEvaluationRecord } from '../analysis-engine/types';
 
 export interface IMessage {
   role: 'system' | 'user' | 'assistant';
@@ -14,7 +15,7 @@ export interface ISession extends Document {
   questionIndex: number;
   experienceLevel: string;
   history: IMessage[];
-  evaluations?: any[];
+  evaluations?: InterviewEvaluationRecord[];
   createdAt: Date;
   updatedAt: Date;
 }

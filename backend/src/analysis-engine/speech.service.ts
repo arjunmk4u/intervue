@@ -1,32 +1,30 @@
 import { SpeechMetrics } from './types';
 
-export function analyzeSpeech(answerText: string, audioMeta?: any): SpeechMetrics {
-  // If we had actual audio blobs, we'd calculate latency/duration.
-  // For now, we estimate based on text volume and simulated markers.
-  
-  const wordCount = answerText.split(/\s+/).length;
-  
-  // Approximate speech rate based on typical 130 wpm
-  const estimatedDurationMinutes = wordCount / 130; 
-  let speechRate = 130; 
+interface AudioMeta {
+  duration?: number | null;
+  latency?: number | null;
+}
 
-  if (audioMeta?.duration) {
-    // If frontend passed actual duration
-    speechRate = Math.round((wordCount / audioMeta.duration) * 60);
+export function analyzeSpeech(answerText: string, audioMeta?: AudioMeta): SpeechMetrics {
+  const wordCount = answerText.trim().split(/\s+/).filter(Boolean).length;
+  const fillerWordCount = (answerText.match(/\b(um|uh|like|you know|basically)\b/gi) || []).length;
+
+  let confidenceSignal: SpeechMetrics['confidenceSignal'] = 'high';
+  if (fillerWordCount > 4) confidenceSignal = 'low';
+  else if (fillerWordCount > 1) confidenceSignal = 'medium';
+
+  const duration = typeof audioMeta?.duration === 'number' && audioMeta.duration > 0 ? audioMeta.duration : null;
+  const latency = typeof audioMeta?.latency === 'number' && audioMeta.latency >= 0 ? Number(audioMeta.latency.toFixed(1)) : null;
+  const speechRate = duration ? Math.round((wordCount / duration) * 60) : null;
+
+  if (duration === null && confidenceSignal === 'high' && fillerWordCount === 0) {
+    confidenceSignal = 'unknown';
   }
-
-  // Determine confidence via fillers
-  const fillerWords = (answerText.match(/\b(um|uh|like|you know|basically)\b/gi) || []).length;
-  let confidenceSignal: 'low' | 'medium' | 'high' = 'high';
-  if (fillerWords > 4) confidenceSignal = 'low';
-  else if (fillerWords > 1) confidenceSignal = 'medium';
-
-  // Fallback latency (avg 1-4s)
-  const latency = audioMeta?.latency || parseFloat((Math.random() * 2 + 1.2).toFixed(1));
 
   return {
     latency,
     speechRate,
-    confidenceSignal
+    confidenceSignal,
+    fillerWordCount,
   };
 }
