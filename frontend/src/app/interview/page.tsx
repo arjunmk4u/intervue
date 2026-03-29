@@ -369,29 +369,33 @@ export default function InterviewRoom() {
   };
 
   return (
-    <main className="h-screen bg-[#0B0E14] text-slate-200 font-sans selection:bg-indigo-500/30 overflow-hidden relative flex flex-col">
+    <main className="h-screen bg-[#f4f8fb] text-slate-800 font-sans selection:bg-[#72abad]/30 overflow-hidden relative flex flex-col">
       {/* Background Decorators */}
-      <div className="absolute top-0 left-0 right-0 h-[500px] bg-gradient-to-b from-indigo-900/10 via-[#0B0E14] to-transparent pointer-events-none z-0"></div>
-      <div className="absolute top-[-10%] left-[-5%] w-[400px] h-[400px] rounded-full bg-blue-600/5 blur-[100px] pointer-events-none z-0"></div>
-      <div className="absolute bottom-[10%] right-[-5%] w-[400px] h-[400px] rounded-full bg-purple-600/5 blur-[100px] pointer-events-none z-0"></div>
+      <div className="absolute top-0 left-0 right-0 h-[500px] bg-gradient-to-b from-[#cdebe7]/50 via-[#f4f8fb] to-transparent pointer-events-none z-0"></div>
+      <div className="absolute top-[-10%] left-[-5%] w-[400px] h-[400px] rounded-full bg-[#72abad]/20 blur-[100px] pointer-events-none z-0"></div>
+      <div className="absolute bottom-[10%] right-[-5%] w-[400px] h-[400px] rounded-full bg-[#cdebe7]/40 blur-[100px] pointer-events-none z-0"></div>
 
       {/* Navbar - Fixed Height */}
-      <nav className="relative z-30 flex items-center justify-between px-6 py-4 border-b border-slate-800/50 bg-[#0B0E14]/80 backdrop-blur-md">
+      <nav className="relative z-30 flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-white/80 backdrop-blur-md">
         <div className="flex items-center gap-2 cursor-pointer" onClick={() => router.push('/')}>
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-cyan-400 to-indigo-500 flex items-center justify-center shadow-[0_0_15px_rgba(47,217,244,0.3)]">
-            <svg className="w-5 h-5 text-[#0B0E14]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-[#72abad] to-[#4a8394] flex items-center justify-center shadow-[0_0_15px_rgba(114,171,173,0.3)]">
+            <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 100 140" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="50" cy="20" r="17" />
+              <path d="M15 52 C15 48 22 44 30 44 L44 44 L50 58 L56 44 L70 44 C78 44 85 48 85 52 L68 118 C67 122 60 126 50 126 C40 126 33 122 32 118 Z" />
+              <path d="M44 44 L50 58 L56 44 L52 44 L50 50 L48 44 Z" fill="rgba(74,131,148,0.6)" />
+              <path d="M48 58 L46 80 L50 90 L54 80 L52 58 Z" fill="rgba(74,131,148,0.6)" /></svg>
           </div>
-          <span className="text-xl font-bold tracking-tight text-white font-manrope">Intervue</span>
+          <span className="text-xl font-bold tracking-tight text-slate-900 font-manrope">Intervue</span>
         </div>
 
         <div className="flex items-center gap-4">
-          <div className="hidden md:flex items-center gap-2 px-3 py-1 rounded-full border border-indigo-500/20 bg-indigo-500/10 text-[10px] font-bold text-indigo-300 uppercase tracking-widest">
-            <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse"></span>
+          <div className="hidden md:flex items-center gap-2 px-3 py-1 rounded-full border border-[#72abad]/30 bg-[#cdebe7]/50 text-[10px] font-bold text-[#4a8394] uppercase tracking-widest">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#4a8394] animate-pulse"></span>
             {phase.replace('-', ' ')}
           </div>
           <button
             onClick={() => router.push(`/analytics?sessionId=${sessionId}`)}
-            className="px-4 py-1.5 rounded-full text-[10px] font-bold text-slate-400 hover:text-white border border-slate-800 hover:bg-white/5 uppercase tracking-widest transition-all"
+            className="px-4 py-1.5 rounded-full text-[10px] font-bold text-slate-600 hover:text-slate-900 border border-slate-300 hover:bg-slate-100/50 uppercase tracking-widest transition-all"
           >
             End Interview
           </button>
@@ -405,10 +409,10 @@ export default function InterviewRoom() {
             <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-in slide-in-from-bottom-4 duration-500 transform-gpu`}>
               <div
                 className={`group relative max-w-[85%] md:max-w-[80%] rounded-2xl p-5 md:p-6 text-base md:text-lg transition-all ${msg.role === 'user'
-                    ? 'bg-gradient-to-br from-indigo-600 to-blue-700 text-white rounded-tr-none shadow-[0_10px_30px_-10px_rgba(79,70,229,0.4)]'
-                    : msg.role === 'system'
-                      ? 'bg-red-950/20 text-red-300 border border-red-900/30 italic w-full text-center py-3'
-                      : 'bg-[#13161F]/60 text-slate-200 rounded-tl-none border border-slate-800/50 shadow-xl backdrop-blur-md'
+                  ? 'bg-gradient-to-br from-[#4a8394] to-[#72abad] text-white rounded-tr-none shadow-[0_10px_30px_-10px_rgba(74,131,148,0.4)]'
+                  : msg.role === 'system'
+                    ? 'bg-red-50 text-red-600 border border-red-200 italic w-full text-center py-3'
+                    : 'bg-white text-slate-800 rounded-tl-none border border-slate-200 shadow-xl backdrop-blur-md'
                   }`}
               >
                 {msg.role === 'assistant' && (
@@ -424,11 +428,11 @@ export default function InterviewRoom() {
 
           {(loading || isConverting || closingStatus) && (
             <div className="flex justify-start animate-in fade-in duration-300">
-              <div className="bg-[#13161F]/40 border border-slate-800/50 rounded-2xl rounded-tl-none p-6 flex flex-col items-center justify-center gap-4 min-w-[160px] backdrop-blur-sm">
+              <div className="bg-white/80 border border-slate-200 rounded-2xl rounded-tl-none p-6 flex flex-col items-center justify-center gap-4 min-w-[160px] backdrop-blur-sm">
                 <div className="flex gap-2">
-                  <div className="w-2 h-2 rounded-full bg-indigo-500 animate-[bounce_1s_infinite_0ms]"></div>
-                  <div className="w-2 h-2 rounded-full bg-cyan-400 animate-[bounce_1s_infinite_200ms]"></div>
-                  <div className="w-2 h-2 rounded-full bg-indigo-300 animate-[bounce_1s_infinite_400ms]"></div>
+                  <div className="w-2 h-2 rounded-full bg-[#4a8394] animate-[bounce_1s_infinite_0ms]"></div>
+                  <div className="w-2 h-2 rounded-full bg-[#72abad] animate-[bounce_1s_infinite_200ms]"></div>
+                  <div className="w-2 h-2 rounded-full bg-[#cdebe7] animate-[bounce_1s_infinite_400ms]"></div>
                 </div>
                 <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
                   {closingStatus || (isConverting ? 'Transcribing...' : 'Thinking...')}
@@ -441,18 +445,18 @@ export default function InterviewRoom() {
       </div>
 
       {/* Control Area - Fixed at Bottom */}
-      <div className="relative z-20 pb-10 pt-4 px-6 bg-gradient-to-t from-[#0B0E14] via-[#0B0E14] to-transparent">
+      <div className="relative z-20 pb-10 pt-4 px-6 bg-gradient-to-t from-[#f4f8fb] via-[#f4f8fb] to-transparent">
         <div className="max-w-3xl mx-auto flex flex-col items-center relative">
 
           {/* Speaking/Recording Indicator Overlay */}
           <div className={`absolute -top-16 left-1/2 -translate-x-1/2 transition-all duration-300 ${isSpeaking || isRecording || isConverting || closingStatus ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
-            <div className="flex items-center gap-3 px-6 py-2 rounded-full bg-slate-900/90 border border-slate-700/50 shadow-2xl backdrop-blur-xl">
+            <div className="flex items-center gap-3 px-6 py-2 rounded-full bg-white/90 border border-slate-200 shadow-xl backdrop-blur-xl">
               <div className="flex gap-1 items-center">
-                <div className={`w-1 h-3 bg-indigo-500 rounded-full ${isSpeaking || isRecording ? 'animate-[stretch_0.5s_infinite_alternate]' : ''}`}></div>
-                <div className={`w-1 h-5 bg-cyan-400 rounded-full ${isSpeaking || isRecording ? 'animate-[stretch_0.5s_infinite_alternate_0.1s]' : ''}`}></div>
-                <div className={`w-1 h-2 bg-indigo-400 rounded-full ${isSpeaking || isRecording ? 'animate-[stretch_0.5s_infinite_alternate_0.2s]' : ''}`}></div>
+                <div className={`w-1 h-3 bg-[#4a8394] rounded-full ${isSpeaking || isRecording ? 'animate-[stretch_0.5s_infinite_alternate]' : ''}`}></div>
+                <div className={`w-1 h-5 bg-[#72abad] rounded-full ${isSpeaking || isRecording ? 'animate-[stretch_0.5s_infinite_alternate_0.1s]' : ''}`}></div>
+                <div className={`w-1 h-2 bg-[#cdebe7] rounded-full ${isSpeaking || isRecording ? 'animate-[stretch_0.5s_infinite_alternate_0.2s]' : ''}`}></div>
               </div>
-              <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">
+              <span className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">
                 {closingStatus || (isSpeaking ? 'Interviewer Speaking' : isRecording ? 'Listening...' : 'Processing')}
               </span>
             </div>
@@ -462,8 +466,8 @@ export default function InterviewRoom() {
             onClick={toggleRecording}
             disabled={loading || isConverting || isSpeaking || Boolean(closingStatus)}
             className={`group relative w-16 h-16 md:w-20 md:h-20 rounded-full flex items-center justify-center transition-all duration-500 ${isRecording
-                ? 'bg-red-500 shadow-[0_0_40px_rgba(239,68,68,0.4)] scale-110'
-                : 'bg-indigo-600 hover:bg-indigo-500 shadow-[0_0_30px_rgba(79,70,229,0.3)] hover:shadow-[0_0_50px_rgba(79,70,229,0.5)]'
+              ? 'bg-red-500 shadow-[0_0_40px_rgba(239,68,68,0.4)] scale-110'
+              : 'bg-[#4a8394] hover:bg-[#3d6c7a] shadow-[0_4px_14px_0_rgba(74,131,148,0.39)] hover:shadow-[0_6px_20px_rgba(74,131,148,0.23)]'
               } disabled:opacity-30 disabled:grayscale disabled:cursor-not-allowed`}
           >
             {isRecording ? (
