@@ -1,0 +1,11 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-[#f4f8fb] text-slate-800;
+    margin: 0;
+    padding: 0;
+  }
+}

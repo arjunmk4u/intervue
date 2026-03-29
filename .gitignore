@@ -1,0 +1,46 @@
+# Global ignores
+node_modules/
+.DS_Store
+.agent/ 
+.cursor/
+.codex/
+
+# Next.js Build
+frontend/.next/
+frontend/out/
+frontend/build/
+frontend/.vercel/
+
+# Backend Build
+backend/dist/
+backend/out/
+backend/public/voice/
+
+# Environment Variables
+.env
+.env.local
+.env.*
+.env.development.local
+.env.test.local
+.env.production.local
+.env*.local
+backend/.env
+frontend/.env.local
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+
+# Editor & IDE
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Misc caches
+*.tsbuildinfo
