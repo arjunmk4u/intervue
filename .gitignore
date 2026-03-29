@@ -2,8 +2,11 @@
 node_modules/
 .DS_Store
 .agent/ 
+.agents/
+.claude/
 .cursor/
 .codex/
+skills-lock.json
 
 # Next.js Build
 frontend/.next/

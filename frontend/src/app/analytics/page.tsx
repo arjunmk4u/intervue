@@ -98,14 +98,14 @@ function AnalyticsDashboardContent() {
 
   if (!report || !Number.isFinite(report.interview_count) || report.interview_count === 0) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-[#0B0E14] px-6 text-center text-slate-200">
-        <h2 className="text-2xl font-bold text-white">Assessment Unavailable</h2>
-        <p className="mt-2 max-w-md text-sm text-slate-400">
+      <div className="flex min-h-screen flex-col items-center justify-center bg-[#f4f8fb] px-6 text-center text-slate-800">
+        <h2 className="text-2xl font-bold text-slate-900">Assessment Unavailable</h2>
+        <p className="mt-2 max-w-md text-sm text-slate-500">
           This report only appears after at least one analyzed interview answer has been saved.
         </p>
         <Link
           href="/"
-          className="mt-6 rounded-full bg-white px-5 py-2.5 text-sm font-bold text-[#0B0E14] transition hover:bg-slate-200"
+          className="mt-6 rounded-full bg-[#4a8394] px-5 py-2.5 text-sm font-bold text-white transition-all active:scale-[0.97] hover:scale-[1.02] duration-200 ease-emil-out hover:bg-[#3d6c7a] shadow-[0_4px_14px_0_rgba(74,131,148,0.35)] hover:shadow-[0_6px_20px_rgba(74,131,148,0.3)]"
         >
           Return Home
         </Link>
@@ -124,23 +124,23 @@ function AnalyticsDashboardContent() {
   const evidenceSummary = normalizeEvidenceSummary(report.evidence_summary);
 
   return (
-    <main className="min-h-screen bg-[#0B0E14] text-slate-200 font-sans selection:bg-indigo-500/30 overflow-x-hidden relative">
-      <div className="absolute top-0 left-0 right-0 h-[420px] bg-gradient-to-b from-indigo-900/20 via-[#0B0E14] to-transparent pointer-events-none z-0"></div>
-      <div className="absolute top-[-15%] left-[-8%] h-[560px] w-[560px] rounded-full bg-cyan-500/10 blur-[120px] pointer-events-none z-0"></div>
-      <div className="absolute top-[18%] right-[-12%] h-[520px] w-[520px] rounded-full bg-indigo-600/10 blur-[120px] pointer-events-none z-0"></div>
+    <main className="min-h-screen bg-[#f4f8fb] text-slate-800 font-sans selection:bg-[#72abad]/30 overflow-x-hidden relative">
+      <div className="absolute top-0 left-0 right-0 h-[600px] bg-gradient-to-b from-[#cdebe7]/60 via-[#f4f8fb] to-transparent pointer-events-none z-0"></div>
+      <div className="absolute top-[-10%] left-[-10%] w-[700px] h-[700px] rounded-full bg-[#72abad]/15 blur-[130px] pointer-events-none z-0"></div>
+      <div className="absolute top-[30%] right-[-10%] w-[500px] h-[500px] rounded-full bg-[#cdebe7]/50 blur-[120px] pointer-events-none z-0"></div>
 
       <div className="relative z-10 mx-auto max-w-7xl px-6 py-6 md:px-12 md:py-8">
-        <header className="rounded-[2rem] border border-slate-800/70 bg-slate-950/75 px-6 py-5 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.55)] backdrop-blur-xl">
+        <header className="rounded-[2rem] border border-slate-200 bg-white/75 px-6 py-5 shadow-[0_20px_60px_rgba(74,131,148,0.08)] backdrop-blur-xl transition-all duration-300 ease-emil-out hover:shadow-[0_20px_60px_rgba(74,131,148,0.12)]">
           <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
             <div>
-              <div className="inline-flex items-center gap-2 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.25em] text-indigo-300">
-                <span className="h-1.5 w-1.5 rounded-full bg-indigo-400 animate-pulse"></span>
+              <div className="inline-flex items-center gap-2 rounded-full border border-[#72abad]/30 bg-[#cdebe7]/50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.25em] text-[#4a8394]">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#4a8394] animate-pulse"></span>
                 Session-Based Assessment
               </div>
-              <h1 className="mt-4 text-3xl font-extrabold tracking-tight text-white md:text-5xl">
+              <h1 className="mt-4 text-3xl font-extrabold tracking-tight text-slate-900 md:text-5xl">
                 Interview evidence report
               </h1>
-              <p className="mt-3 max-w-3xl text-sm leading-relaxed text-slate-400 md:text-base">
+              <p className="mt-3 max-w-3xl text-sm leading-relaxed text-slate-500 md:text-base">
                 Every score and recommendation below comes from the interview answers saved in this session. No percentile ranking, no placeholder coaching, and no guessed performance data.
               </p>
             </div>
@@ -148,7 +148,7 @@ function AnalyticsDashboardContent() {
             <div className="flex flex-wrap gap-3">
               <Link
                 href="/"
-                className="rounded-full border border-slate-700/80 px-5 py-2.5 text-sm font-semibold text-slate-200 transition hover:border-slate-500 hover:bg-white/5 hover:text-white"
+                className="rounded-full border border-slate-300 bg-white px-5 py-2.5 text-sm font-bold text-slate-700 transition-all active:scale-[0.97] hover:scale-[1.02] duration-200 ease-emil-out hover:bg-slate-50 hover:border-slate-400 shadow-sm"
               >
                 New Session
               </Link>
@@ -194,15 +194,15 @@ function AnalyticsDashboardContent() {
               body={
                 <div className="space-y-4">
                   {questionReviews.length > 0 ? questionReviews.map((review, index) => (
-                    <div key={`${review.phase}-${index}`} className="rounded-[1.5rem] border border-slate-800/70 bg-slate-950/70 p-5">
+                    <div key={`${review.phase}-${index}`} className="group rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md transition-all duration-300 ease-emil-out">
                       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                         <div>
-                          <div className="inline-flex rounded-full border border-slate-700/70 bg-slate-900/70 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400">
+                          <div className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.22em] text-slate-500">
                             {review.phase}
                           </div>
-                          <h3 className="mt-3 text-base font-bold text-white">{review.question}</h3>
+                          <h3 className="mt-3 text-base font-bold text-slate-900">{review.question}</h3>
                         </div>
-                        <div className="grid grid-cols-2 gap-2 text-right text-sm text-slate-400">
+                        <div className="grid grid-cols-2 gap-2 text-right text-sm font-medium text-slate-500">
                           <span>clarity {review.scores.clarity}</span>
                           <span>depth {review.scores.depth}</span>
                           <span>relevance {review.scores.relevance}</span>
@@ -210,9 +210,9 @@ function AnalyticsDashboardContent() {
                         </div>
                       </div>
 
-                      <div className="mt-4 rounded-[1.25rem] border border-slate-800/70 bg-[#13161F]/80 p-4">
-                        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Your Answer</p>
-                        <p className="mt-2 text-sm leading-relaxed text-slate-300">{review.answerPreview}</p>
+                      <div className="mt-4 rounded-[1.25rem] border border-slate-100 bg-slate-50 p-4">
+                        <p className="text-xs font-bold uppercase tracking-[0.22em] text-slate-400">Your Answer</p>
+                        <p className="mt-2 text-sm leading-relaxed text-slate-700">{review.answerPreview}</p>
                       </div>
 
                       <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
@@ -221,9 +221,9 @@ function AnalyticsDashboardContent() {
                       </div>
 
                       {review.tip ? (
-                        <div className="mt-4 rounded-[1.25rem] border border-indigo-500/20 bg-indigo-500/10 p-4">
-                          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-indigo-300">Saved coaching note</p>
-                          <p className="mt-2 text-sm leading-relaxed text-slate-200">{review.tip}</p>
+                        <div className="mt-4 rounded-[1.25rem] border border-[#cdebe7]/60 bg-[#cdebe7]/20 p-4">
+                          <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#4a8394]">Saved coaching note</p>
+                          <p className="mt-2 text-sm leading-relaxed text-slate-800">{review.tip}</p>
                         </div>
                       ) : null}
                     </div>
@@ -240,15 +240,15 @@ function AnalyticsDashboardContent() {
               body={
                 <div className="space-y-4">
                   {recommendations.length > 0 ? recommendations.map((item, index) => (
-                    <div key={`${item.title}-${index}`} className="rounded-[1.4rem] border border-slate-800/80 bg-slate-950/70 p-4">
+                    <div key={`${item.title}-${index}`} className="group rounded-[1.4rem] border border-slate-200 bg-white p-4 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 ease-emil-out">
                       <div className="flex items-center justify-between gap-3">
-                        <span className="text-sm font-bold text-white">{item.title}</span>
-                        <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.2em] ${item.priority === 'high' ? 'bg-rose-500/15 text-rose-300' : 'bg-indigo-500/15 text-indigo-300'}`}>
+                        <span className="text-sm font-extrabold text-slate-900">{item.title}</span>
+                        <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.2em] ${item.priority === 'high' ? 'bg-rose-100 text-rose-600' : 'bg-[#cdebe7] text-[#4a8394]'}`}>
                           {item.priority}
                         </span>
                       </div>
-                      <p className="mt-3 text-sm leading-relaxed text-slate-400">{item.reason}</p>
-                      <p className="mt-3 text-sm leading-relaxed text-slate-200">{item.action}</p>
+                      <p className="mt-3 text-sm leading-relaxed text-slate-500">{item.reason}</p>
+                      <p className="mt-3 text-sm font-semibold leading-relaxed text-slate-800">{item.action}</p>
                     </div>
                   )) : <p className="text-sm text-slate-500">No saved recommendations were available for this session.</p>}
                 </div>
@@ -285,17 +285,17 @@ function AnalyticsDashboardContent() {
 
 function AnalyticsLoadingState() {
   return (
-    <div className="flex h-screen w-full items-center justify-center bg-[#0B0E14]">
-      <div className="h-10 w-10 rounded-full border-4 border-slate-800 border-t-cyan-400 animate-spin"></div>
+    <div className="flex h-screen w-full items-center justify-center bg-[#f4f8fb]">
+      <div className="h-10 w-10 rounded-full border-4 border-slate-200 border-t-[#4a8394] animate-[spin_0.8s_linear_infinite]"></div>
     </div>
   );
 }
 
 function Panel({ eyebrow, title, body }: { eyebrow: string; title: string; body: React.ReactNode }) {
   return (
-    <div className="rounded-[2rem] border border-slate-800/70 bg-[#13161F]/90 p-6 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] backdrop-blur-xl">
-      <p className="text-xs font-semibold uppercase tracking-[0.25em] text-indigo-300">{eyebrow}</p>
-      <h2 className="mt-2 text-xl font-bold text-white">{title}</h2>
+    <div className="rounded-[2rem] border border-slate-200 bg-white/90 p-6 shadow-sm hover:shadow-md transition-all duration-300 ease-emil-out backdrop-blur-xl">
+      <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[#4a8394]">{eyebrow}</p>
+      <h2 className="mt-2 text-xl font-extrabold text-slate-900">{title}</h2>
       <div className="mt-6">{body}</div>
     </div>
   );
@@ -303,9 +303,9 @@ function Panel({ eyebrow, title, body }: { eyebrow: string; title: string; body:
 
 function SummaryChip({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-[1.25rem] border border-slate-800/70 bg-[#13161F]/80 p-4">
+    <div className="rounded-[1.25rem] border border-slate-200 bg-slate-50/80 p-4 transition-all hover:bg-white hover:shadow-sm duration-300 ease-emil-out">
       <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">{label}</p>
-      <p className="mt-2 text-sm font-semibold text-white">{value}</p>
+      <p className="mt-2 text-sm font-semibold text-slate-900">{value}</p>
     </div>
   );
 }
@@ -326,17 +326,17 @@ function StatCard({
   accent?: boolean;
 }) {
   const toneStyles = {
-    emerald: 'border-emerald-500/20 bg-emerald-500/10 text-emerald-300',
-    indigo: 'border-indigo-500/20 bg-indigo-500/10 text-indigo-300',
-    cyan: 'border-cyan-500/20 bg-cyan-500/10 text-cyan-300',
-    amber: 'border-amber-500/20 bg-amber-500/10 text-amber-300',
+    emerald: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+    indigo: 'border-[#cdebe7] bg-[#cdebe7]/30 text-[#4a8394]',
+    cyan: 'border-cyan-200 bg-cyan-50 text-cyan-700',
+    amber: 'border-amber-200 bg-amber-50 text-amber-700',
   }[toneClass];
 
   return (
-    <div className="rounded-[1.75rem] border border-slate-800/70 bg-[#13161F]/85 p-6 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.45)] backdrop-blur-xl">
+    <div className="group rounded-[1.75rem] border border-slate-200 bg-white/85 p-6 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 ease-emil-out backdrop-blur-xl">
       <p className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-500">{label}</p>
       <div className="mt-4 flex items-end gap-2">
-        <span className={accent ? 'bg-gradient-to-r from-cyan-300 to-indigo-400 bg-clip-text text-5xl font-extrabold text-transparent' : 'text-5xl font-extrabold text-white'}>
+        <span className={accent ? 'bg-gradient-to-r from-[#4a8394] to-[#72abad] bg-clip-text text-5xl font-extrabold text-transparent' : 'text-5xl font-extrabold text-slate-900'}>
           {value}
         </span>
         <span className="pb-1 text-sm font-medium text-slate-500">{suffix}</span>
@@ -350,13 +350,13 @@ function StatCard({
 
 function MetricMeter({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-[1.5rem] border border-slate-800/70 bg-slate-950/70 p-4">
+    <div className="rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-sm transition-all hover:shadow-md duration-300 ease-emil-out">
       <div className="flex items-center justify-between gap-3">
-        <span className="text-sm font-semibold capitalize text-slate-300">{label}</span>
-        <span className="text-lg font-bold text-white">{value}</span>
+        <span className="text-sm font-semibold capitalize text-slate-600">{label}</span>
+        <span className="text-lg font-bold text-slate-900">{value}</span>
       </div>
-      <div className="mt-4 h-2 rounded-full bg-slate-800">
-        <div className="h-2 rounded-full bg-gradient-to-r from-cyan-400 to-indigo-500" style={{ width: `${Math.max(8, Math.min(100, value * 10))}%` }} />
+      <div className="mt-4 h-2 rounded-full bg-slate-100">
+        <div className="h-2 rounded-full bg-gradient-to-r from-[#72abad] to-[#4a8394]" style={{ width: `${Math.max(8, Math.min(100, value * 10))}%` }} />
       </div>
     </div>
   );
@@ -377,29 +377,29 @@ function InsightCard({
 }) {
   const toneStyles = {
     emerald: {
-      badge: 'bg-emerald-500/10 text-emerald-300',
-      label: 'text-emerald-300',
-      card: 'border-emerald-500/10 bg-emerald-500/[0.06]',
+      badge: 'bg-emerald-100 text-emerald-600',
+      label: 'text-emerald-600',
+      card: 'border-emerald-100 bg-emerald-50',
     },
     rose: {
-      badge: 'bg-rose-500/10 text-rose-300',
-      label: 'text-rose-300',
-      card: 'border-rose-500/10 bg-rose-500/[0.06]',
+      badge: 'bg-rose-100 text-rose-600',
+      label: 'text-rose-600',
+      card: 'border-rose-100 bg-rose-50',
     },
   }[tone];
 
   return (
-    <div className="rounded-[2rem] border border-slate-800/70 bg-[#13161F]/90 p-6 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] backdrop-blur-xl">
+    <div className="group rounded-[2rem] border border-slate-200 bg-white/90 p-6 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 ease-emil-out backdrop-blur-xl">
       <div className="flex items-center gap-3">
         <div className={`flex h-9 w-9 items-center justify-center rounded-full ${toneStyles.badge}`}></div>
         <div>
-          <p className={`text-xs font-semibold uppercase tracking-[0.25em] ${toneStyles.label}`}>{label}</p>
-          <h3 className="text-lg font-bold text-white">{title}</h3>
+          <p className={`text-xs font-bold uppercase tracking-[0.25em] ${toneStyles.label}`}>{label}</p>
+          <h3 className="text-lg font-extrabold text-slate-900">{title}</h3>
         </div>
       </div>
       <div className="mt-6 space-y-3">
         {items?.length > 0 ? items.map((item, i) => (
-          <div key={i} className={`rounded-[1.25rem] border p-4 text-sm leading-relaxed text-slate-300 ${toneStyles.card}`}>
+          <div key={i} className={`rounded-[1.25rem] border p-4 text-sm leading-relaxed text-slate-700 ${toneStyles.card}`}>
             {item}
           </div>
         )) : <p className="text-sm text-slate-500">{emptyMessage}</p>}
@@ -410,11 +410,11 @@ function InsightCard({
 
 function ReviewList({ title, items, emptyMessage }: { title: string; items: string[]; emptyMessage: string }) {
   return (
-    <div className="rounded-[1.25rem] border border-slate-800/70 bg-slate-950/70 p-4">
-      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">{title}</p>
+    <div className="rounded-[1.25rem] border border-slate-100 bg-white p-4 shadow-sm hover:shadow-md transition-all duration-300 ease-emil-out">
+      <p className="text-xs font-bold uppercase tracking-[0.22em] text-slate-400">{title}</p>
       <div className="mt-3 space-y-2">
         {items.length > 0 ? items.map((item, index) => (
-          <p key={index} className="text-sm leading-relaxed text-slate-300">{item}</p>
+          <p key={index} className="text-sm leading-relaxed text-slate-700">{item}</p>
         )) : <p className="text-sm text-slate-500">{emptyMessage}</p>}
       </div>
     </div>
@@ -423,9 +423,9 @@ function ReviewList({ title, items, emptyMessage }: { title: string; items: stri
 
 function SpeechStat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-[1.25rem] border border-slate-800/70 bg-slate-950/70 p-4">
-      <p className="text-xs uppercase tracking-[0.22em] text-slate-500">{label}</p>
-      <p className="mt-2 text-2xl font-bold text-white">{value}</p>
+    <div className="rounded-[1.25rem] border border-slate-100 bg-white p-4 shadow-sm transition-all hover:bg-slate-50 duration-300 ease-emil-out">
+      <p className="text-xs font-bold uppercase tracking-[0.22em] text-slate-400">{label}</p>
+      <p className="mt-2 text-2xl font-extrabold text-slate-900">{value}</p>
     </div>
   );
 }

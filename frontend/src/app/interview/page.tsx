@@ -308,7 +308,16 @@ export default function InterviewRoom() {
   };
 
   const handleVoiceSubmit = async (transcript: string, audioMeta: AudioMetaPayload) => {
-    if (!transcript.trim() || loading || isSpeaking || Boolean(closingStatus)) return;
+    if (loading || isSpeaking || Boolean(closingStatus)) return;
+
+    const isClosingPhase = phase === 'closing';
+
+    if (!transcript.trim()) {
+      if (isClosingPhase) {
+        await runClosingSequence('No further questions.');
+      }
+      return;
+    }
 
     setMessages((prev) => [...prev, { role: 'user', content: transcript }]);
     setLoading(true);
@@ -316,8 +325,6 @@ export default function InterviewRoom() {
     const currentQuestion = messages.length > 0
       ? [...messages].reverse().find((message) => message.role === 'assistant')?.content || ''
       : '';
-
-    const isClosingPhase = phase === 'closing';
 
     try {
       const analyzePromise = fetch(`${BACKEND_URL}/api/analyze-response`, {
@@ -395,7 +402,7 @@ export default function InterviewRoom() {
           </div>
           <button
             onClick={() => router.push(`/analytics?sessionId=${sessionId}`)}
-            className="px-4 py-1.5 rounded-full text-[10px] font-bold text-slate-600 hover:text-slate-900 border border-slate-300 hover:bg-slate-100/50 uppercase tracking-widest transition-all"
+            className="px-4 py-1.5 rounded-full text-[10px] font-bold text-slate-600 hover:text-slate-900 border border-slate-300 hover:bg-slate-100/50 uppercase tracking-widest transition-all active:scale-[0.97] hover:scale-[1.02] duration-200 ease-emil-out"
           >
             End Interview
           </button>
@@ -404,30 +411,38 @@ export default function InterviewRoom() {
 
       {/* Chat Area - Scrollable */}
       <div className="flex-1 overflow-y-auto relative z-10 scroll-smooth custom-scrollbar">
-        <div className="max-w-3xl mx-auto px-6 py-12 space-y-8">
+        <div className="max-w-4xl mx-auto px-4 md:px-8 py-16 space-y-12">
           {messages.map((msg, idx) => (
-            <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-in slide-in-from-bottom-4 duration-500 transform-gpu`}>
+            <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2 duration-300 ease-emil-out transform-gpu`}>
               <div
-                className={`group relative max-w-[85%] md:max-w-[80%] rounded-2xl p-5 md:p-6 text-base md:text-lg transition-all ${msg.role === 'user'
-                  ? 'bg-gradient-to-br from-[#4a8394] to-[#72abad] text-white rounded-tr-none shadow-[0_10px_30px_-10px_rgba(74,131,148,0.4)]'
+                className={`group relative max-w-[90%] md:max-w-[75%] rounded-3xl p-6 md:p-8 text-base md:text-lg transition-all ${msg.role === 'user'
+                  ? 'bg-slate-900 border border-slate-700 text-white rounded-tr-sm shadow-[0_20px_40px_-15px_rgba(0,0,0,0.3)]'
                   : msg.role === 'system'
-                    ? 'bg-red-50 text-red-600 border border-red-200 italic w-full text-center py-3'
-                    : 'bg-white text-slate-800 rounded-tl-none border border-slate-200 shadow-xl backdrop-blur-md'
+                    ? 'bg-red-50/80 text-red-600 border border-red-200 italic w-full text-center py-4 rounded-2xl'
+                    : 'bg-white/90 text-slate-800 rounded-tl-sm border border-slate-200 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.05)] backdrop-blur-xl'
                   }`}
               >
                 {msg.role === 'assistant' && (
-                  <div className="absolute -top-6 left-0 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Interviewer</div>
+                  <div className="absolute -top-7 left-2 flex items-center gap-2">
+                    <div className="w-5 h-5 rounded-full bg-gradient-to-tr from-[#72abad] to-[#4a8394] flex items-center justify-center shadow-sm">
+                      <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 100 140" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="50" cy="20" r="17" />
+                        <path d="M15 52 C15 48 22 44 30 44 L44 44 L50 58 L56 44 L70 44 C78 44 85 48 85 52 L68 118 C67 122 60 126 50 126 C40 126 33 122 32 118 Z" />
+                      </svg>
+                    </div>
+                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">Interviewer</span>
+                  </div>
                 )}
                 {msg.role === 'user' && (
-                  <div className="absolute -top-6 right-0 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-right">You</div>
+                  <div className="absolute -top-7 right-2 text-[11px] font-bold text-slate-500 uppercase tracking-widest text-right">You</div>
                 )}
-                <p className="whitespace-pre-wrap leading-relaxed mix-blend-plus-lighter">{msg.content}</p>
+                <p className="whitespace-pre-wrap leading-relaxed font-medium">{msg.content}</p>
               </div>
             </div>
           ))}
 
           {(loading || isConverting || closingStatus) && (
-            <div className="flex justify-start animate-in fade-in duration-300">
+            <div className="flex justify-start animate-in fade-in slide-in-from-bottom-2 duration-300 ease-emil-out">
               <div className="bg-white/80 border border-slate-200 rounded-2xl rounded-tl-none p-6 flex flex-col items-center justify-center gap-4 min-w-[160px] backdrop-blur-sm">
                 <div className="flex gap-2">
                   <div className="w-2 h-2 rounded-full bg-[#4a8394] animate-[bounce_1s_infinite_0ms]"></div>
@@ -449,14 +464,14 @@ export default function InterviewRoom() {
         <div className="max-w-3xl mx-auto flex flex-col items-center relative">
 
           {/* Speaking/Recording Indicator Overlay */}
-          <div className={`absolute -top-16 left-1/2 -translate-x-1/2 transition-all duration-300 ${isSpeaking || isRecording || isConverting || closingStatus ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
-            <div className="flex items-center gap-3 px-6 py-2 rounded-full bg-white/90 border border-slate-200 shadow-xl backdrop-blur-xl">
-              <div className="flex gap-1 items-center">
-                <div className={`w-1 h-3 bg-[#4a8394] rounded-full ${isSpeaking || isRecording ? 'animate-[stretch_0.5s_infinite_alternate]' : ''}`}></div>
-                <div className={`w-1 h-5 bg-[#72abad] rounded-full ${isSpeaking || isRecording ? 'animate-[stretch_0.5s_infinite_alternate_0.1s]' : ''}`}></div>
-                <div className={`w-1 h-2 bg-[#cdebe7] rounded-full ${isSpeaking || isRecording ? 'animate-[stretch_0.5s_infinite_alternate_0.2s]' : ''}`}></div>
+          <div className={`absolute -top-20 left-1/2 -translate-x-1/2 transition-all duration-500 ease-out ${isSpeaking || isRecording || isConverting || closingStatus ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-8 scale-95 pointer-events-none'}`}>
+            <div className="flex items-center gap-4 px-8 py-3 rounded-full bg-white/95 border border-slate-200 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.15)] backdrop-blur-xl">
+              <div className="flex gap-1.5 items-center justify-center w-6">
+                <div className={`w-1.5 bg-slate-800 rounded-full transition-all duration-300 ${isSpeaking || isRecording ? 'h-4 animate-[stretch_0.5s_infinite_alternate]' : 'h-1.5'}`}></div>
+                <div className={`w-1.5 bg-slate-600 rounded-full transition-all duration-300 ${isSpeaking || isRecording ? 'h-6 animate-[stretch_0.5s_infinite_alternate_0.1s]' : 'h-1.5'}`}></div>
+                <div className={`w-1.5 bg-slate-400 rounded-full transition-all duration-300 ${isSpeaking || isRecording ? 'h-3 animate-[stretch_0.5s_infinite_alternate_0.2s]' : 'h-1.5'}`}></div>
               </div>
-              <span className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">
+              <span className="text-[11px] font-bold text-slate-700 uppercase tracking-widest">
                 {closingStatus || (isSpeaking ? 'Interviewer Speaking' : isRecording ? 'Listening...' : 'Processing')}
               </span>
             </div>
@@ -465,21 +480,21 @@ export default function InterviewRoom() {
           <button
             onClick={toggleRecording}
             disabled={loading || isConverting || isSpeaking || Boolean(closingStatus)}
-            className={`group relative w-16 h-16 md:w-20 md:h-20 rounded-full flex items-center justify-center transition-all duration-500 ${isRecording
-              ? 'bg-red-500 shadow-[0_0_40px_rgba(239,68,68,0.4)] scale-110'
-              : 'bg-[#4a8394] hover:bg-[#3d6c7a] shadow-[0_4px_14px_0_rgba(74,131,148,0.39)] hover:shadow-[0_6px_20px_rgba(74,131,148,0.23)]'
-              } disabled:opacity-30 disabled:grayscale disabled:cursor-not-allowed`}
+            className={`group relative w-20 h-20 md:w-24 md:h-24 rounded-full flex items-center justify-center transition-all duration-300 ease-emil-out ${isRecording
+              ? 'bg-red-500 shadow-[0_0_50px_rgba(239,68,68,0.5)] scale-110'
+              : 'bg-slate-900 hover:bg-slate-800 shadow-[0_10px_30px_-5px_rgba(0,0,0,0.5)] hover:shadow-[0_15px_40px_-5px_rgba(0,0,0,0.6)] hover:-translate-y-1 active:scale-[0.97]'
+              } disabled:opacity-40 disabled:scale-95 disabled:hover:translate-y-0 disabled:cursor-not-allowed`}
           >
             {isRecording ? (
-              <div className="w-6 h-6 md:w-8 md:h-8 bg-white rounded-sm"></div>
+              <div className="w-8 h-8 md:w-10 md:h-10 bg-white rounded-lg shadow-inner scale-in-center"></div>
             ) : (
-              <svg className="w-8 h-8 md:w-10 md:h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-10 h-10 md:w-12 md:h-12 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
               </svg>
             )}
             {/* Pulsing ring when active */}
             {(isRecording || isSpeaking) && (
-              <div className="absolute inset-0 rounded-full border-4 border-white/20 animate-ping opacity-20"></div>
+              <div className="absolute inset-0 rounded-full border-4 border-white/30 animate-ping opacity-30"></div>
             )}
           </button>
 
