@@ -129,42 +129,116 @@ export default function InterviewRoom() {
         return;
       }
 
-      if (!isMountedRef.current || requestId !== playRequestIdRef.current) {
-        console.warn(`[Voice] Request ${requestId} superseded or component unmounted.`);
-        return;
-      }
-
-      const blob = await res.blob();
-      if (!isMountedRef.current || requestId !== playRequestIdRef.current) {
-        console.warn(`[Voice] Request ${requestId} superseded after audio download.`);
-        return;
-      }
-
-      if (!blob.size) {
-        console.error('[Voice] No audio data received');
+      if (!res.body) {
+        console.error('[Voice] No readable stream');
         setIsSpeaking(false);
         return;
       }
 
-      const sourceUrl = URL.createObjectURL(blob);
-      audioUrlRef.current = sourceUrl;
-      console.log(`[Voice] Playing streamed audio blob (ID: ${requestId})`);
+      const reader = res.body.getReader();
+      const mimeType = 'audio/mpeg';
+      const useMSE = typeof MediaSource !== 'undefined' && MediaSource.isTypeSupported(mimeType);
 
-      audio.src = sourceUrl;
-      audio.currentTime = 0;
+      if (useMSE) {
+        const mediaSource = new MediaSource();
+        const sourceUrl = URL.createObjectURL(mediaSource);
+        audioUrlRef.current = sourceUrl;
+        audio.src = sourceUrl;
 
-      try {
-        await audio.play();
-      } catch (playError) {
-        if (playError instanceof DOMException && playError.name === 'NotAllowedError') {
-          console.warn('[Voice] Autoplay blocked, waiting for interaction.');
-          // In a real app we might show a "Click to Listen" button
-          // For now, we'll just log it.
-          return;
+        mediaSource.addEventListener('sourceopen', () => {
+          const sourceBuffer = mediaSource.addSourceBuffer(mimeType);
+          const queue: Uint8Array[] = [];
+          let isAppending = false;
+
+          const appendNext = () => {
+             if (mediaSource.readyState !== 'open') return;
+             if (queue.length > 0 && !sourceBuffer.updating) {
+                isAppending = true;
+                try {
+                  const chunk = queue.shift()!;
+                  sourceBuffer.appendBuffer(new Uint8Array(chunk));
+                } catch (e) {
+                  console.error('[Voice] MSE append issue:', e);
+                }
+             }
+          };
+
+          let doneReading = false;
+
+          sourceBuffer.addEventListener('updateend', () => {
+             isAppending = false;
+             appendNext();
+             if (queue.length === 0 && !sourceBuffer.updating && doneReading && mediaSource.readyState === 'open') {
+               try { mediaSource.endOfStream(); } catch(e){}
+             }
+          });
+
+          let firstPlay = true;
+
+          const readLoop = async () => {
+            try {
+              while (true) {
+                const { done, value } = await reader.read();
+                
+                if (!isMountedRef.current || requestId !== playRequestIdRef.current || mediaSource.readyState === 'closed') {
+                   reader.cancel().catch(() => {});
+                   break;
+                }
+
+                if (done) {
+                   doneReading = true;
+                   if (queue.length === 0 && !sourceBuffer.updating && mediaSource.readyState === 'open') {
+                      try { mediaSource.endOfStream(); } catch(e){}
+                   }
+                   break;
+                }
+
+                if (value) {
+                  queue.push(value);
+                  appendNext();
+                  if (firstPlay) {
+                    firstPlay = false;
+                    audio.play().catch(playError => {
+                       console.warn('[Voice] Autoplay blocked, waiting for interaction.', playError);
+                    });
+                  }
+                }
+              }
+            } catch (err) {
+              console.error('[Voice] Stream read error', err);
+              if (mediaSource.readyState === 'open') {
+                 try { mediaSource.endOfStream('network'); } catch(e){}
+              }
+            }
+          };
+
+          void readLoop();
+        }, { once: true });
+
+      } else {
+        // Fallback mechanism buffer all chunks
+        const chunks: Uint8Array[] = [];
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (!isMountedRef.current || requestId !== playRequestIdRef.current) {
+              reader.cancel().catch(() => {});
+              break;
+            }
+            if (done) break;
+            if (value) chunks.push(value);
+          }
+          if (chunks.length > 0 && requestId === playRequestIdRef.current) {
+             const blob = new Blob(chunks.map(chunk => new Uint8Array(chunk)), { type: 'audio/mpeg' });
+             const sourceUrl = URL.createObjectURL(blob);
+             audioUrlRef.current = sourceUrl;
+             audio.src = sourceUrl;
+             audio.currentTime = 0;
+             await audio.play().catch(playError => console.warn('[Voice] Autoplay blocked:', playError));
+          }
+        } catch (err) {
+          console.error('[Voice] Fallback Stream read error', err);
         }
-
-        console.error('[Voice] Audio play error:', playError);
-        throw playError;
       }
     } catch (error) {
       console.error('[Voice] Speak request failed:', error);

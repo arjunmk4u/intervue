@@ -16,6 +16,16 @@ export async function generateSpeech(text: string): Promise<Buffer> {
   return audioBuffer;
 }
 
+export function generateSpeechStream(text: string): AsyncGenerator<Uint8Array, void, unknown> {
+  const tts = new EdgeTTS();
+  return tts.synthesizeStream(humanizeText(text), DEFAULT_VOICE, {
+    rate: '-8%',
+    pitch: '-8Hz',
+    volume: '90%',
+    outputFormat: Constants.OUTPUT_FORMAT.AUDIO_24KHZ_48KBITRATE_MONO_MP3,
+  });
+}
+
 export function humanizeText(text: string): string {
   const normalized = text.replace(/\s+/g, ' ').trim();
   const conversational = rewriteForConversation(normalized);

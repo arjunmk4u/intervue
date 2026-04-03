@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { enqueue } from './voice.queue';
-import { generateSpeech } from './tts.service';
+import { generateSpeechStream } from './tts.service';
 
 export async function speakController(req: Request, res: Response): Promise<void> {
   const { text } = req.body as { text?: string };
@@ -10,17 +10,26 @@ export async function speakController(req: Request, res: Response): Promise<void
     return;
   }
 
-  try {
-    const audioBuffer = await enqueue(async () => generateSpeech(text));
+  res.setHeader('Content-Type', 'audio/mpeg');
+  res.setHeader('Transfer-Encoding', 'chunked');
+  res.setHeader('Cache-Control', 'no-store');
 
-    res.setHeader('Content-Type', 'audio/mpeg');
-    res.setHeader('Content-Length', audioBuffer.length);
-    res.setHeader('Cache-Control', 'no-store');
-    res.send(audioBuffer);
-  } catch (error) {
-    console.error('[Voice] Failed to generate speech:', error);
-    res.status(503).json({
-      error: error instanceof Error ? error.message : 'voice_unavailable',
+  try {
+    await enqueue(async () => {
+      const stream = generateSpeechStream(text);
+      for await (const chunk of stream) {
+        res.write(chunk);
+      }
+      res.end();
     });
+  } catch (error) {
+    console.error('[Voice] Failed to generate speech stream:', error);
+    if (!res.headersSent) {
+      res.status(503).json({
+        error: error instanceof Error ? error.message : 'voice_unavailable',
+      });
+    } else {
+      res.end();
+    }
   }
 }
