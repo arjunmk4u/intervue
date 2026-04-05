@@ -16,6 +16,9 @@ const geistMono = localFont({
 export const metadata: Metadata = {
   title: "AI Interviewer",
   description: "Live Voice and Video AI Interview Platform",
+  icons: {
+    icon: "/icon.png",
+  },
 };
 
 export default function RootLayout({
