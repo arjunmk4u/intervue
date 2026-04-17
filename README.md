@@ -1,60 +1,96 @@
-# Intervue: Live AI Technical Intervewer
+# Intervue
 
-An interactive, voice-first interview simulator built with a modern Next.js frontend and an Express backend. It provides an immersive, premium SaaS experience designed to help you nail your next technical or behavioral interview.
+Voice-first mock interview practice built with a Next.js frontend, an Express + TypeScript backend, MongoDB session storage, Groq-powered interview/evaluation flows, Deepgram transcription, and Edge TTS voice playback.
 
-![Intervue Preview](https://via.placeholder.com/800x400/f4f8fb/4a8394?text=Intervue+Voice-First+AI)
+![Intervue Banner](./banner.png)
 
-## ✨ What's New in this Version
+## What the app currently does
 
-Intervue has been completely overhauled with a focus on perceived performance and a premium user experience:
+- Starts a new interview session for one of these target roles: `Software Engineer`, `Data Scientist`, `Product Manager`, `Frontend Developer`, `Backend Developer`, `Full Stack Developer`, `Machine Learning Engineer`, `DevOps Engineer`
+- Lets the candidate choose an experience level: `Fresher`, `1-2 years`, `3-5 years`, `5+ years`
+- Optionally uploads a resume and stores parsed resume data against the session
+- Runs a live interview in a chat-style voice UI
+- Records spoken answers in the browser with `MediaRecorder`
+- Sends recorded audio to Deepgram for transcription
+- Generates the next interviewer question with Groq using the active interview phase, recent history, role, experience level, and resume context when available
+- Speaks interviewer prompts back to the candidate using Edge TTS
+- Analyzes every answer for technical quality, behavioral signals, and speech heuristics
+- Produces a final session report with overall score, strengths, weaknesses, recommendations, speaking evidence, and per-question reviews
 
+## Interview flow
 
-- **Premium Light Mode UI:** We overhauled the Analytics Assessment page to seamlessly match the Landing page, utilizing glassmorphism, soft shadow elevations, and cohesive color palettes (`#f4f8fb`, `#4a8394`, `#72abad`).
-- **Tactile Micro-Interactions:** Everything you can interact with now reacts. Buttons and cards feature `active:scale-[0.97]` click-states that rebound immediately upon interaction to let you know the system is listening.
+The current backend phase order is:
 
-## 🚀 Core Features
+1. `intro` - 1 question
+2. `resume` - 3 questions
+3. `technical` - 3 questions
+4. `behavioral` - 2 questions
+5. `situational` - 2 questions
+6. `closing` - 1 final prompt before the closing message/report handoff
 
-- **Voice-First Experience:** Speak your answers naturally. No typing or pressure. The AI interviewer asks questions phase-by-phase (intro, behavioral, technical).
-- **Real-Time AI Coaching:** Get instant evaluation powered by **Groq** on every answer, analyzing your depth, structure, and confidence.
-- **Detailed Analytics & Reports:** Review a full session breakdown with your transcribed answers, latency metrics, speaking rate, skipped filler words, and actionable next steps.
-- **Seamless Speech & Transcription:** Employs **Deepgram** for lightning-fast speech-to-text and `edge-tts` to deliver spoken questions with natural, human-like pacing. Gracefully degrades to text-only if playback fails.
-- **Resume Parsing Setup:** Optionally upload your resume to generate hyper-personalized interview flows.
+The frontend pages are:
 
----
+- `/` landing page
+- `/setup` session setup page
+- `/interview` live interview room
+- `/analytics` final report page
 
-## 🛠 Tech Stack
+## Tech stack
 
-- **Frontend:** Next.js 14 App Router, React, Tailwind CSS, Framer Motion (principles integrated natively via CSS variables)
-- **Backend:** Node.js, Express, TypeScript, MongoDB
-- **AI / Voice Services:** Groq (LLM Inference), Deepgram (Transcription), Edge-TTS (Audio Voice Synthesis)
+- Frontend: Next.js 14 App Router, React 18, TypeScript, Tailwind CSS
+- Backend: Express 5, TypeScript, Mongoose
+- LLM: Groq `llama-3.3-70b-versatile`
+- Transcription: Deepgram `nova-2`
+- Text to speech: `@andresaya/edge-tts` with `en-US-JennyNeural`
+- Database: MongoDB
 
----
+## Project structure
 
-## 💻 Environment Setup
+```text
+.
+|-- backend
+|   |-- src
+|   |   |-- analysis-engine
+|   |   |-- config
+|   |   |-- interview-engine
+|   |   |-- models
+|   |   |-- routes
+|   |   |-- services
+|   |   `-- voice
+|-- frontend
+|   `-- src
+|       `-- app
+|-- banner.png
+|-- intervue.txt
+`-- README.md
+```
 
-### Backend Config
-Create a `.env` file inside the `backend/` directory:
+## Environment variables
+
+Create `backend/.env`:
 
 ```env
 PORT=5000
 MONGODB_URI=mongodb://127.0.0.1:27017/live-interview-bot
-GROQ_API_KEY=your_groq_key_here
-DEEPGRAM_API_KEY=your_deepgram_key_here
+GROQ_API_KEY=your_groq_api_key
+DEEPGRAM_API_KEY=your_deepgram_api_key
 ```
 
-### Frontend Config
-Create a `.env.local` file inside the `frontend/` directory:
+Create `frontend/.env.local`:
 
 ```env
 NEXT_PUBLIC_BACKEND_URL=http://localhost:5000
 ```
 
----
+Notes:
 
-## 🏃 Running the Application locally
+- `GROQ_API_KEY` is required at backend startup.
+- `DEEPGRAM_API_KEY` is effectively required for the live voice interview flow because transcription depends on it.
+- MongoDB must be reachable before sessions/resumes/reports can be stored.
 
-### 1. Start the Backend API
-The backend requires MongoDB to be running and valid API credentials for Groq and Deepgram.
+## How to run locally
+
+Install and run the backend:
 
 ```bash
 cd backend
@@ -62,36 +98,67 @@ npm install
 npm run dev
 ```
 
-### 2. Start the Frontend Application
+Install and run the frontend in another terminal:
+
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
 
-Now open [http://localhost:3000](http://localhost:3000) in your browser to begin testing.
+Open `http://localhost:3000`.
 
----
+## Production commands
 
-## 🏗 Production Build 
+Backend:
 
-**Backend:**
 ```bash
 cd backend
+npm install
 npm run build
 npm start
 ```
 
-**Frontend:**
+Frontend:
+
 ```bash
 cd frontend
+npm install
 npm run build
 npm start
 ```
 
-## 🧠 Design Philosophy
+## API surface
 
-Our UI philosophy relies on the concept that unseen details compound:
-1. Interfaces shouldn't jump or abruptly change state. We use blurring and fading combinations for rendering the status UI and loaders.
-2. Transitions stay below 300ms to maximize perceived performance.
-3. Every component features a distinct hover (`lift`) and an active click state (`scale`), providing direct visual feedback upon gesture.
+Mounted from the backend:
+
+- `GET /api/health`
+- `POST /api/start-session`
+- `POST /api/upload-resume`
+- `POST /api/next-question`
+- `POST /api/analyze-response`
+- `POST /api/closing-message`
+- `GET /api/final-report?sessionId=...`
+- `POST /api/transcribe`
+- `POST /api/voice/speak`
+
+## How scoring works
+
+Each analyzed answer stores:
+
+- Technical scores: clarity, depth, relevance, structure, confidence
+- Behavioral scores: leadership, ownership, problem solving, communication
+- Speech heuristics: answer-start latency, speech rate, filler word count, confidence signal
+- Coaching tip, strengths, and weaknesses
+
+Final report weighting:
+
+- 65% technical evaluation averages
+- 25% behavioral averages
+- 10% speaking metrics when available
+
+## Current implementation notes
+
+- Resume parsing is implemented with `pdf-parse`, so the backend is currently PDF-oriented. The setup UI accepts `.pdf` and `.docx`, but documented resume intelligence should be treated as PDF-backed in the current codebase.
+- The app is voice-first, not video-based.
+- Reports are session-based only. There is no user auth, multi-user dashboard, or long-term profile history in the current codebase.
