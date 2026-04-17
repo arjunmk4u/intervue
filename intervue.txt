@@ -350,3 +350,23 @@ The easiest accurate mental model is:
 - the analysis engine scores what was said
 - the voice pipeline makes the interviewer speak
 - the analytics page turns saved evidence into a final report
+
+
+15. Developer Credits
+
+Intervue was built by:
+
+- Arjun M K (`arjunmk4u`)
+  - core interview flow
+  - backend logic
+  - interview engine behavior
+  - voice/transcription orchestration
+  - analytics/reporting foundations
+  - GitHub: `https://github.com/arjunmk4u`
+  - Portfolio: `https://arjunmk.com`
+
+- Jeevan Jijo
+  - UI/UX implementation
+  - frontend polish
+  - supporting work across the app experience
+  - GitHub: `https://github.com/Jeevan-Jijo`

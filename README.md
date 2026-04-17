@@ -162,3 +162,13 @@ Final report weighting:
 - Resume parsing is implemented with `pdf-parse`, so the backend is currently PDF-oriented. The setup UI accepts `.pdf` and `.docx`, but documented resume intelligence should be treated as PDF-backed in the current codebase.
 - The app is voice-first, not video-based.
 - Reports are session-based only. There is no user auth, multi-user dashboard, or long-term profile history in the current codebase.
+
+## Developers
+
+Intervue was built by:
+
+- Arjun M K (`arjunmk4u`) - core interview engine, backend logic, session flow, voice/transcription orchestration, and analytics/reporting foundations
+  GitHub: `https://github.com/arjunmk4u`
+  Portfolio: `https://arjunmk.com`
+- Jeevan Jijo - UI/UX implementation, frontend polish, and supporting app work across the experience
+  GitHub: `https://github.com/Jeevan-Jijo`
