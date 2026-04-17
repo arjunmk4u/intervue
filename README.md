@@ -4,6 +4,10 @@ Voice-first mock interview practice built with a Next.js frontend, an Express + 
 
 ![Intervue Banner](./banner.png)
 
+## Overview
+
+Intervue is a session-based mock interview app designed around spoken interview practice. The current implementation combines a Next.js frontend, an Express backend, MongoDB persistence, Groq-powered interview generation and evaluation, Deepgram transcription, and Edge TTS voice playback to simulate a live interview flow and generate an evidence-based final report.
+
 ## What the app currently does
 
 - Starts a new interview session for one of these target roles: `Software Engineer`, `Data Scientist`, `Product Manager`, `Frontend Developer`, `Backend Developer`, `Full Stack Developer`, `Machine Learning Engineer`, `DevOps Engineer`
@@ -37,12 +41,14 @@ The frontend pages are:
 
 ## Tech stack
 
-- Frontend: Next.js 14 App Router, React 18, TypeScript, Tailwind CSS
-- Backend: Express 5, TypeScript, Mongoose
-- LLM: Groq `llama-3.3-70b-versatile`
-- Transcription: Deepgram `nova-2`
-- Text to speech: `@andresaya/edge-tts` with `en-US-JennyNeural`
-- Database: MongoDB
+| Layer | Technology |
+|---|---|
+| Frontend | Next.js 14 App Router, React 18, TypeScript, Tailwind CSS |
+| Backend | Express 5, TypeScript, Mongoose |
+| LLM | Groq `llama-3.3-70b-versatile` |
+| Transcription | Deepgram `nova-2` |
+| Text to speech | `@andresaya/edge-tts` with `en-US-JennyNeural` |
+| Database | MongoDB |
 
 ## Project structure
 
@@ -90,7 +96,7 @@ Notes:
 
 ## How to run locally
 
-Install and run the backend:
+1. Install and run the backend:
 
 ```bash
 cd backend
@@ -98,7 +104,7 @@ npm install
 npm run dev
 ```
 
-Install and run the frontend in another terminal:
+2. Install and run the frontend in another terminal:
 
 ```bash
 cd frontend
@@ -106,7 +112,7 @@ npm install
 npm run dev
 ```
 
-Open `http://localhost:3000`.
+3. Open `http://localhost:3000`.
 
 ## Production commands
 
@@ -167,8 +173,7 @@ Final report weighting:
 
 Intervue was built by:
 
-- Arjun M K (`arjunmk4u`) - core interview engine, backend logic, session flow, voice/transcription orchestration, and analytics/reporting foundations
-  GitHub: `https://github.com/arjunmk4u`
-  Portfolio: `https://arjunmk.com`
-- Jeevan Jijo - UI/UX implementation, frontend polish, and supporting app work across the experience
-  GitHub: `https://github.com/Jeevan-Jijo`
+| Developer | Contributions | Links |
+|---|---|---|
+| Arjun M K | Core interview engine, backend logic, session flow, voice/transcription orchestration, and analytics/reporting foundations | [GitHub](https://github.com/arjunmk4u) • [Portfolio](https://arjunmk.com) |
+| Jeevan Jijo | UI/UX implementation, frontend polish, and supporting app work across the experience | [GitHub](https://github.com/Jeevan-Jijo) |
