@@ -2,6 +2,9 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { useAuth } from '@/context/AuthContext';
+import { apiFetch, BACKEND_URL } from '@/lib/api';
 
 interface Message {
   role: 'system' | 'assistant' | 'user';
@@ -18,10 +21,9 @@ interface AudioMetaPayload {
   latency: number | null;
 }
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
-
 export default function InterviewRoom() {
   const router = useRouter();
+  const { user, loading: authLoading } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -148,12 +150,10 @@ export default function InterviewRoom() {
         mediaSource.addEventListener('sourceopen', () => {
           const sourceBuffer = mediaSource.addSourceBuffer(mimeType);
           const queue: Uint8Array[] = [];
-          let isAppending = false;
 
           const appendNext = () => {
              if (mediaSource.readyState !== 'open') return;
              if (queue.length > 0 && !sourceBuffer.updating) {
-                isAppending = true;
                 try {
                   const chunk = queue.shift()!;
                   sourceBuffer.appendBuffer(new Uint8Array(chunk));
@@ -166,10 +166,9 @@ export default function InterviewRoom() {
           let doneReading = false;
 
           sourceBuffer.addEventListener('updateend', () => {
-             isAppending = false;
              appendNext();
              if (queue.length === 0 && !sourceBuffer.updating && doneReading && mediaSource.readyState === 'open') {
-               try { mediaSource.endOfStream(); } catch(e){}
+               try { mediaSource.endOfStream(); } catch {}
              }
           });
 
@@ -188,7 +187,7 @@ export default function InterviewRoom() {
                 if (done) {
                    doneReading = true;
                    if (queue.length === 0 && !sourceBuffer.updating && mediaSource.readyState === 'open') {
-                      try { mediaSource.endOfStream(); } catch(e){}
+                      try { mediaSource.endOfStream(); } catch {}
                    }
                    break;
                 }
@@ -207,7 +206,7 @@ export default function InterviewRoom() {
             } catch (err) {
               console.error('[Voice] Stream read error', err);
               if (mediaSource.readyState === 'open') {
-                 try { mediaSource.endOfStream('network'); } catch(e){}
+                 try { mediaSource.endOfStream('network'); } catch {}
               }
             }
           };
@@ -251,7 +250,7 @@ export default function InterviewRoom() {
   const runClosingSequence = useCallback(async (latestAnswer: string) => {
     setClosingStatus('Wrapping up your interview...');
 
-    const res = await fetch(`${BACKEND_URL}/api/closing-message`, {
+    const res = await apiFetch('/api/closing-message', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ sessionId, answer: latestAnswer }),
@@ -283,6 +282,11 @@ export default function InterviewRoom() {
   }, [router, sessionId, sleep, speakResponse, waitForAudioPlayback]);
 
   useEffect(() => {
+    if (!authLoading && !user) {
+      router.push('/login');
+      return;
+    }
+
     isMountedRef.current = true;
     const storedSession = localStorage.getItem('sessionId');
     const firstQuestion = localStorage.getItem('firstQuestion');
@@ -315,7 +319,7 @@ export default function InterviewRoom() {
 
       stopCurrentAudio();
     };
-  }, [router, speakResponse, stopCurrentAudio, unregisterPlaybackRetry]);
+  }, [router, speakResponse, stopCurrentAudio, unregisterPlaybackRetry, user, authLoading]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -353,7 +357,7 @@ export default function InterviewRoom() {
         formData.append('audio', audioBlob, 'record.webm');
 
         try {
-          const res = await fetch(`${BACKEND_URL}/api/transcribe`, {
+          const res = await apiFetch('/api/transcribe', {
             method: 'POST',
             body: formData,
           });
@@ -401,7 +405,7 @@ export default function InterviewRoom() {
       : '';
 
     try {
-      const analyzePromise = fetch(`${BACKEND_URL}/api/analyze-response`, {
+      const analyzePromise = apiFetch('/api/analyze-response', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sessionId, phase, question: currentQuestion, answer: transcript, audioMeta }),
@@ -417,7 +421,7 @@ export default function InterviewRoom() {
         return;
       }
 
-      const nextQuestionPromise = fetch(`${BACKEND_URL}/api/next-question`, {
+      const nextQuestionPromise = apiFetch('/api/next-question', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sessionId, answer: transcript }),
@@ -470,6 +474,12 @@ export default function InterviewRoom() {
         </div>
 
         <div className="flex items-center gap-4">
+          <Link
+            href="/dashboard"
+            className="hidden sm:inline-block text-xs font-bold text-slate-600 hover:text-slate-900 transition-colors"
+          >
+            Dashboard
+          </Link>
           <div className="hidden md:flex items-center gap-2 px-3 py-1 rounded-full border border-[#72abad]/30 bg-[#cdebe7]/50 text-[10px] font-bold text-[#4a8394] uppercase tracking-widest">
             <span className="w-1.5 h-1.5 rounded-full bg-[#4a8394] animate-pulse"></span>
             {phase.replace('-', ' ')}

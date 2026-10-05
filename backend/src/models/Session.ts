@@ -9,6 +9,7 @@ export interface IMessage {
 
 export interface ISession extends Document {
   sessionId: string;
+  userId?: mongoose.Types.ObjectId;
   domain: string;
   resumeId?: mongoose.Types.ObjectId;
   phase: 'intro' | 'resume' | 'technical' | 'behavioral' | 'situational' | 'closing';
@@ -28,6 +29,7 @@ const MessageSchema = new Schema<IMessage>({
 
 const SessionSchema = new Schema<ISession>({
   sessionId: { type: String, required: true, unique: true },
+  userId: { type: Schema.Types.ObjectId, ref: 'User', index: true },
   domain: { type: String, required: true },
   resumeId: { type: Schema.Types.ObjectId, ref: 'Resume' },
   phase: { 

@@ -41,7 +41,7 @@ export async function generateNextQuestion(session: ISession, resumeData: IResum
 
   try {
     const response = await groq.chat.completions.create({
-      model: 'llama-3.3-70b-versatile',
+      model: env.GROQ_MODEL,
       messages,
       temperature: 0.7,
     });
@@ -84,7 +84,7 @@ Rules:
 
   try {
     const response = await groq.chat.completions.create({
-      model: 'llama-3.3-70b-versatile',
+      model: env.GROQ_MODEL,
       messages,
       temperature: 0.5,
     });

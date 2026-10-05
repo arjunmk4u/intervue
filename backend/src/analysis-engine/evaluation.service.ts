@@ -34,7 +34,7 @@ Return ONLY valid JSON matching this exact structure, with no markdown formattin
 
   try {
     const response = await groq.chat.completions.create({
-      model: 'llama-3.3-70b-versatile',
+      model: env.GROQ_MODEL,
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: `Question: ${question}\nCandidate Answer: ${answer}` }

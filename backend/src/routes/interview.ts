@@ -1,7 +1,7 @@
 import express from 'express';
 import multer from 'multer';
 import crypto from 'crypto';
-import Session, { IMessage } from '../models/Session';
+import Session, { IMessage, ISession } from '../models/Session';
 import Resume from '../models/Resume';
 import { parsePdfToText, extractResumeData } from '../services/resume-parser';
 import { generateClosingMessage, generateNextQuestion } from '../services/gpt-service';
@@ -11,11 +11,23 @@ import { analyzeBehavioral, generateCoachingTip } from '../analysis-engine/behav
 import { analyzeSpeech } from '../analysis-engine/speech.service';
 import { calculateOverallScore } from '../analysis-engine/scoring.service';
 import { InterviewEvaluationRecord } from '../analysis-engine/types';
+import { requireAuth, AuthRequest } from '../middleware/auth';
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
 
-router.post('/upload-resume', upload.single('resume'), async (req, res) => {
+function checkSessionOwnership(session: ISession, req: AuthRequest): boolean {
+  if (!session.userId) {
+    // Backward compatibility for legacy sessions created prior to user accounts
+    return true;
+  }
+  if (!req.user || !req.user._id) {
+    return false;
+  }
+  return session.userId.toString() === req.user._id.toString();
+}
+
+router.post('/upload-resume', requireAuth, upload.single('resume'), async (req: AuthRequest, res) => {
   try {
     const { sessionId } = req.body;
     if (!sessionId) {
@@ -24,6 +36,15 @@ router.post('/upload-resume', upload.single('resume'), async (req, res) => {
     
     if (!req.file) {
       return res.status(400).json({ error: 'No resume file uploaded' });
+    }
+
+    const session = await Session.findOne({ sessionId });
+    if (!session) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+
+    if (!checkSessionOwnership(session, req)) {
+      return res.status(403).json({ error: 'Unauthorized: You do not have permission to modify this interview session.' });
     }
 
     const text = await parsePdfToText(req.file.buffer);
@@ -38,7 +59,8 @@ router.post('/upload-resume', upload.single('resume'), async (req, res) => {
 
     await resume.save();
 
-    await Session.findOneAndUpdate({ sessionId }, { resumeId: resume._id });
+    session.resumeId = resume._id;
+    await session.save();
 
     res.json({ message: 'Resume uploaded and parsed', data: structuredData });
   } catch (error) {
@@ -47,13 +69,14 @@ router.post('/upload-resume', upload.single('resume'), async (req, res) => {
   }
 });
 
-router.post('/start-session', async (req, res) => {
+router.post('/start-session', requireAuth, async (req: AuthRequest, res) => {
   try {
     const { domain, experienceLevel = 'Fresher' } = req.body;
     const sessionId = crypto.randomUUID();
 
     const session = new Session({
       sessionId,
+      userId: req.user?._id,
       domain,
       experienceLevel,
       phase: 'intro',
@@ -87,12 +110,16 @@ router.post('/start-session', async (req, res) => {
   }
 });
 
-router.post('/next-question', async (req, res) => {
+router.post('/next-question', requireAuth, async (req: AuthRequest, res) => {
   try {
     const { sessionId, answer } = req.body;
     
     const session = await Session.findOne({ sessionId });
     if (!session) return res.status(404).json({ error: 'Session not found' });
+
+    if (!checkSessionOwnership(session, req)) {
+      return res.status(403).json({ error: 'Unauthorized: You do not have permission to access this interview session.' });
+    }
 
     // Append user answer to history
     session.history.push({
@@ -139,7 +166,7 @@ router.post('/next-question', async (req, res) => {
   }
 });
 
-router.post('/analyze-response', async (req, res) => {
+router.post('/analyze-response', requireAuth, async (req: AuthRequest, res) => {
   try {
     const { sessionId, question, answer, audioMeta, phase } = req.body;
     
@@ -149,6 +176,10 @@ router.post('/analyze-response', async (req, res) => {
 
     const session = await Session.findOne({ sessionId });
     if (!session) return res.status(404).json({ error: 'Session not found' });
+
+    if (!checkSessionOwnership(session, req)) {
+      return res.status(403).json({ error: 'Unauthorized: You do not have permission to access this interview session.' });
+    }
 
     // Run parallel analysis
     const [evaluation, behavioral, tip] = await Promise.all([
@@ -181,7 +212,7 @@ router.post('/analyze-response', async (req, res) => {
   }
 });
 
-router.post('/closing-message', async (req, res) => {
+router.post('/closing-message', requireAuth, async (req: AuthRequest, res) => {
   try {
     const { sessionId, answer } = req.body;
 
@@ -191,6 +222,10 @@ router.post('/closing-message', async (req, res) => {
 
     const session = await Session.findOne({ sessionId });
     if (!session) return res.status(404).json({ error: 'Session not found' });
+
+    if (!checkSessionOwnership(session, req)) {
+      return res.status(403).json({ error: 'Unauthorized: You do not have permission to access this interview session.' });
+    }
 
     const alreadyHasAnswerInHistory = session.history.some(
       (message) =>
@@ -229,13 +264,17 @@ router.post('/closing-message', async (req, res) => {
   }
 });
 
-router.get('/final-report', async (req, res) => {
+router.get('/final-report', requireAuth, async (req: AuthRequest, res) => {
   try {
     const { sessionId } = req.query;
     if (!sessionId) return res.status(400).json({ error: 'sessionId required' });
 
     const session = await Session.findOne({ sessionId: sessionId as string });
     if (!session) return res.status(404).json({ error: 'Session not found' });
+
+    if (!checkSessionOwnership(session, req)) {
+      return res.status(403).json({ error: 'Unauthorized: You do not have permission to view this interview report.' });
+    }
 
     const report = calculateOverallScore(session.evaluations || []);
     res.json(report);

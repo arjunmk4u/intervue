@@ -28,7 +28,7 @@ Return ONLY valid JSON matching this exact structure:
 
   try {
     const response = await groq.chat.completions.create({
-      model: 'llama-3.3-70b-versatile',
+      model: env.GROQ_MODEL,
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: `Question: ${question}\nCandidate Answer: ${answer}` }
@@ -50,7 +50,7 @@ export async function generateCoachingTip(question: string, answer: string): Pro
   const systemPrompt = `Give a short, actionable coaching tip (max 1 sentence) to improve this interview answer. Focus on one high-impact change.`;
   try {
     const response = await groq.chat.completions.create({
-      model: 'llama-3.3-70b-versatile',
+      model: env.GROQ_MODEL,
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: `Question: ${question}\nCandidate Answer: ${answer}` }

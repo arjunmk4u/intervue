@@ -28,7 +28,7 @@ ${text}
 `;
 
   const response = await groq.chat.completions.create({
-    model: 'llama-3.3-70b-versatile',
+    model: env.GROQ_MODEL,
     messages: [
       { role: 'system', content: 'You are an expert resume parser. Respond ONLY with the requested JSON.' },
       { role: 'user', content: prompt }

@@ -1,9 +1,12 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { useAuth } from '@/context/AuthContext';
 
 export default function LandingPage() {
   const router = useRouter();
+  const { user, logout } = useAuth();
 
   return (
     <main className="min-h-screen bg-[#f4f8fb] text-slate-800 font-sans overflow-x-hidden relative">
@@ -28,8 +31,41 @@ export default function LandingPage() {
         <div className="flex items-center gap-4">
           <a href="#features" className="hidden md:block text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">Features</a>
           <a href="#how-it-works" className="hidden md:block text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">How it works</a>
+          
+          {user ? (
+            <>
+              <Link
+                href="/dashboard"
+                className="text-sm font-bold text-[#4a8394] hover:text-[#3d6c7a] transition-colors"
+              >
+                Dashboard
+              </Link>
+              <button
+                onClick={() => logout()}
+                className="hidden sm:block text-xs font-semibold text-slate-500 hover:text-slate-800 transition-colors"
+              >
+                Sign Out
+              </button>
+            </>
+          ) : (
+            <>
+              <Link
+                href="/login"
+                className="text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors"
+              >
+                Sign In
+              </Link>
+              <Link
+                href="/register"
+                className="hidden sm:block text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors"
+              >
+                Register
+              </Link>
+            </>
+          )}
+
           <button
-            onClick={() => router.push('/setup')}
+            onClick={() => router.push(user ? '/setup' : '/login')}
             className="px-5 py-2.5 rounded-full text-sm font-bold text-white bg-[#4a8394] hover:bg-[#3d6c7a] shadow-[0_4px_14px_0_rgba(74,131,148,0.35)] hover:shadow-[0_6px_20px_rgba(74,131,148,0.3)] transition-all active:scale-[0.97] hover:scale-[1.02] duration-200 ease-emil-out"
           >
             Start Interview →

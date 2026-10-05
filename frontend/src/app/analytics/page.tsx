@@ -3,6 +3,8 @@
 import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { useAuth } from '@/context/AuthContext';
+import { apiFetch } from '@/lib/api';
 
 interface RecommendationItem {
   title: string;
@@ -40,11 +42,40 @@ interface FinalReport {
   };
 }
 
+interface ComparisonData {
+  hasPrevious: boolean;
+  message?: string;
+  current?: {
+    sessionId: string;
+    domain: string;
+    experienceLevel: string;
+    createdAt: string;
+    overall_score: number;
+    metrics?: Record<string, number>;
+    behavioral?: Record<string, number>;
+    speech?: Record<string, unknown>;
+  };
+  previous?: {
+    sessionId: string;
+    domain: string;
+    experienceLevel: string;
+    createdAt: string;
+    overall_score: number;
+    metrics?: Record<string, number>;
+    behavioral?: Record<string, number>;
+    speech?: Record<string, unknown>;
+  };
+  delta?: {
+    overall_score: number;
+    technical: number;
+    behavioral: number;
+    speech: number | null;
+  };
+}
+
 interface ReportErrorResponse {
   error: string;
 }
-
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
 
 export default function AnalyticsDashboard() {
   return (
@@ -57,31 +88,53 @@ export default function AnalyticsDashboard() {
 function AnalyticsDashboardContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { user, loading: authLoading } = useAuth();
   const [report, setReport] = useState<FinalReport | null>(null);
+  const [comparison, setComparison] = useState<ComparisonData | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!authLoading && !user) {
+      router.push('/login');
+      return;
+    }
+
     let sessionId = searchParams?.get('sessionId');
     if (!sessionId) {
       sessionId = localStorage.getItem('sessionId');
     }
 
     if (!sessionId) {
-      router.push('/');
+      router.push('/dashboard');
       return;
     }
 
-    const fetchReport = async () => {
+    const fetchReportAndComparison = async () => {
       try {
-        const res = await fetch(`${BACKEND_URL}/api/final-report?sessionId=${sessionId}`);
-        if (!res.ok) {
-          throw new Error(`API returned ${res.status}`);
+        const [reportRes, compRes] = await Promise.all([
+          apiFetch(`/api/final-report?sessionId=${sessionId}`),
+          apiFetch(`/api/history/comparison?sessionId=${sessionId}`).catch(() => null),
+        ]);
+
+        if (reportRes.status === 401) {
+          router.push('/login');
+          return;
         }
-        const data = await res.json();
-        if (isReportErrorResponse(data)) {
+
+        if (!reportRes.ok) {
+          throw new Error(`API returned ${reportRes.status}`);
+        }
+
+        const reportData = await reportRes.json();
+        if (isReportErrorResponse(reportData)) {
           setReport(null);
         } else {
-          setReport(data);
+          setReport(reportData);
+        }
+
+        if (compRes && compRes.ok) {
+          const compData = await compRes.json();
+          setComparison(compData);
         }
       } catch (err) {
         console.error('Failed to load analytics:', err);
@@ -91,10 +144,12 @@ function AnalyticsDashboardContent() {
       }
     };
 
-    fetchReport();
-  }, [router, searchParams]);
+    if (user) {
+      fetchReportAndComparison();
+    }
+  }, [router, searchParams, user, authLoading]);
 
-  if (loading) return <AnalyticsLoadingState />;
+  if (authLoading || loading) return <AnalyticsLoadingState />;
 
   if (!report || !Number.isFinite(report.interview_count) || report.interview_count === 0) {
     return (
@@ -103,12 +158,20 @@ function AnalyticsDashboardContent() {
         <p className="mt-2 max-w-md text-sm text-slate-500">
           This report only appears after at least one analyzed interview answer has been saved.
         </p>
-        <Link
-          href="/"
-          className="mt-6 rounded-full bg-[#4a8394] px-5 py-2.5 text-sm font-bold text-white transition-all active:scale-[0.97] hover:scale-[1.02] duration-200 ease-emil-out hover:bg-[#3d6c7a] shadow-[0_4px_14px_0_rgba(74,131,148,0.35)] hover:shadow-[0_6px_20px_rgba(74,131,148,0.3)]"
-        >
-          Return Home
-        </Link>
+        <div className="mt-6 flex items-center gap-3">
+          <Link
+            href="/dashboard"
+            className="rounded-full bg-white border border-slate-300 px-5 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 transition-all shadow-sm"
+          >
+            Go to Dashboard
+          </Link>
+          <Link
+            href="/setup"
+            className="rounded-full bg-[#4a8394] px-5 py-2.5 text-sm font-bold text-white transition-all active:scale-[0.97] hover:scale-[1.02] duration-200 ease-emil-out hover:bg-[#3d6c7a] shadow-[0_4px_14px_0_rgba(74,131,148,0.35)]"
+          >
+            Start Interview
+          </Link>
+        </div>
       </div>
     );
   }
@@ -130,27 +193,44 @@ function AnalyticsDashboardContent() {
       <div className="absolute top-[30%] right-[-10%] w-[500px] h-[500px] rounded-full bg-[#cdebe7]/50 blur-[120px] pointer-events-none z-0"></div>
 
       <div className="relative z-10 mx-auto max-w-7xl px-6 py-6 md:px-12 md:py-8">
+        {/* Navigation Bar */}
+        <div className="flex items-center justify-between mb-6">
+          <Link href="/dashboard" className="inline-flex items-center gap-1.5 text-xs font-bold text-[#4a8394] hover:text-[#3d6c7a] transition-colors">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+            Back to Dashboard
+          </Link>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/setup"
+              className="rounded-full bg-[#4a8394] px-4 py-2 text-xs font-bold text-white hover:bg-[#3d6c7a] transition-all shadow-[0_4px_12px_rgba(74,131,148,0.3)]"
+            >
+              + Practice Again
+            </Link>
+          </div>
+        </div>
+
+        {/* Header */}
         <header className="rounded-[2rem] border border-slate-200 bg-white/75 px-6 py-5 shadow-[0_20px_60px_rgba(74,131,148,0.08)] backdrop-blur-xl transition-all duration-300 ease-emil-out hover:shadow-[0_20px_60px_rgba(74,131,148,0.12)]">
           <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
             <div>
               <div className="inline-flex items-center gap-2 rounded-full border border-[#72abad]/30 bg-[#cdebe7]/50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.25em] text-[#4a8394]">
                 <span className="h-1.5 w-1.5 rounded-full bg-[#4a8394] animate-pulse"></span>
-                Session-Based Assessment
+                Evidence-Based Report
               </div>
               <h1 className="mt-4 text-3xl font-extrabold tracking-tight text-slate-900 md:text-5xl">
-                Interview evidence report
+                Interview performance evaluation
               </h1>
               <p className="mt-3 max-w-3xl text-sm leading-relaxed text-slate-500 md:text-base">
-                Every score and recommendation below comes from the interview answers saved in this session. No percentile ranking, no placeholder coaching, and no guessed performance data.
+                Every score and recommendation below is derived from your spoken interview answers saved in this session.
               </p>
             </div>
 
             <div className="flex flex-wrap gap-3">
               <Link
-                href="/"
+                href="/dashboard"
                 className="rounded-full border border-slate-300 bg-white px-5 py-2.5 text-sm font-bold text-slate-700 transition-all active:scale-[0.97] hover:scale-[1.02] duration-200 ease-emil-out hover:bg-slate-50 hover:border-slate-400 shadow-sm"
               >
-                New Session
+                All Interviews
               </Link>
             </div>
           </div>
@@ -162,6 +242,106 @@ function AnalyticsDashboardContent() {
           </div>
         </header>
 
+        {/* Longitudinal Comparison Section */}
+        {comparison && (
+          <section className="mt-8 rounded-[2rem] border border-slate-200/90 bg-white/90 p-6 shadow-sm backdrop-blur-xl">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-7 h-7 rounded-lg bg-[#cdebe7] text-[#4a8394] flex items-center justify-center">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
+              </div>
+              <h2 className="text-base font-bold text-slate-900">Longitudinal Performance Tracking</h2>
+            </div>
+
+            {comparison.hasPrevious && comparison.previous && comparison.delta ? (
+              <div className="space-y-4">
+                <div className="p-4 rounded-2xl bg-gradient-to-r from-[#cdebe7]/30 to-[#f4f8fb] border border-[#72abad]/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <p className="text-xs font-semibold text-slate-500">
+                      Compared against previous interview on{' '}
+                      <strong className="text-slate-800">
+                        {new Date(comparison.previous.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                      </strong>{' '}
+                      ({comparison.previous.domain})
+                    </p>
+                    <p className="text-sm font-bold text-slate-900 mt-1">
+                      Current Score: {comparison.current?.overall_score || report.overall_score}/100 • Previous: {comparison.previous.overall_score}/100
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-xs font-bold uppercase text-slate-400">Score Delta:</span>
+                    <span className={`px-3 py-1 rounded-full text-xs font-extrabold ${
+                      comparison.delta.overall_score > 0
+                        ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                        : comparison.delta.overall_score < 0
+                        ? 'bg-rose-100 text-rose-800 border border-rose-300'
+                        : 'bg-slate-100 text-slate-700 border border-slate-300'
+                    }`}>
+                      {comparison.delta.overall_score > 0 ? `+${comparison.delta.overall_score} pts` : `${comparison.delta.overall_score} pts`}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Sub-Metrics Delta Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="rounded-xl border border-slate-200/80 bg-white p-4">
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Technical Trajectory</p>
+                    <div className="flex items-center justify-between mt-2">
+                      <span className="text-base font-bold text-slate-800">Technical Avg</span>
+                      <span className={`text-xs font-extrabold px-2 py-0.5 rounded-md ${
+                        comparison.delta.technical > 0 ? 'text-emerald-700 bg-emerald-50' : comparison.delta.technical < 0 ? 'text-rose-700 bg-rose-50' : 'text-slate-600 bg-slate-100'
+                      }`}>
+                        {comparison.delta.technical > 0 ? `+${comparison.delta.technical}` : `${comparison.delta.technical}`}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl border border-slate-200/80 bg-white p-4">
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Behavioral Trajectory</p>
+                    <div className="flex items-center justify-between mt-2">
+                      <span className="text-base font-bold text-slate-800">Behavioral Avg</span>
+                      <span className={`text-xs font-extrabold px-2 py-0.5 rounded-md ${
+                        comparison.delta.behavioral > 0 ? 'text-emerald-700 bg-emerald-50' : comparison.delta.behavioral < 0 ? 'text-rose-700 bg-rose-50' : 'text-slate-600 bg-slate-100'
+                      }`}>
+                        {comparison.delta.behavioral > 0 ? `+${comparison.delta.behavioral}` : `${comparison.delta.behavioral}`}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl border border-slate-200/80 bg-white p-4">
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Speech & Delivery</p>
+                    <div className="flex items-center justify-between mt-2">
+                      <span className="text-base font-bold text-slate-800">Speech Heuristic</span>
+                      <span className={`text-xs font-extrabold px-2 py-0.5 rounded-md ${
+                        comparison.delta.speech !== null && comparison.delta.speech > 0
+                          ? 'text-emerald-700 bg-emerald-50'
+                          : comparison.delta.speech !== null && comparison.delta.speech < 0
+                          ? 'text-rose-700 bg-rose-50'
+                          : 'text-slate-600 bg-slate-100'
+                      }`}>
+                        {comparison.delta.speech !== null ? (comparison.delta.speech > 0 ? `+${comparison.delta.speech}` : `${comparison.delta.speech}`) : 'Baseline'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-[#cdebe7] text-[#4a8394] flex items-center justify-center shrink-0">
+                  🌱
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-slate-900">First Mock Interview</p>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    This is your first completed interview. Complete another practice session to track your longitudinal score deltas and progress over time.
+                  </p>
+                </div>
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* Top 4 Metric Highlights */}
         <section className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
           <StatCard label="Clarity" value={metrics.clarity} suffix="/ 10" tone={getMetricTone(metrics.clarity)} toneClass="indigo" accent />
           <StatCard label="Depth" value={metrics.depth} suffix="/ 10" tone={getMetricTone(metrics.depth)} toneClass="emerald" />
@@ -169,6 +349,7 @@ function AnalyticsDashboardContent() {
           <StatCard label="Problem Solving" value={behavioral.problem_solving} suffix="/ 10" tone={getMetricTone(behavioral.problem_solving)} toneClass="amber" />
         </section>
 
+        {/* Main 2-Column Grid */}
         <section className="mt-8 grid grid-cols-1 gap-6 xl:grid-cols-[1.2fr_0.8fr]">
           <div className="space-y-6">
             <Panel
@@ -220,63 +401,103 @@ function AnalyticsDashboardContent() {
                         <ReviewList title="Needs work" items={review.weaknesses} emptyMessage="No weaknesses stored for this answer." />
                       </div>
 
-                      {review.tip ? (
-                        <div className="mt-4 rounded-[1.25rem] border border-[#cdebe7]/60 bg-[#cdebe7]/20 p-4">
-                          <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#4a8394]">Saved coaching note</p>
-                          <p className="mt-2 text-sm leading-relaxed text-slate-800">{review.tip}</p>
-                        </div>
-                      ) : null}
+                      <div className="mt-4 rounded-[1.25rem] border border-sky-100 bg-sky-50/70 p-4">
+                        <p className="text-xs font-bold uppercase tracking-[0.22em] text-sky-600">Coaching Tip</p>
+                        <p className="mt-2 text-sm leading-relaxed text-sky-900">{review.tip}</p>
+                      </div>
                     </div>
-                  )) : <p className="text-sm text-slate-500">No per-answer reviews were available for this session.</p>}
+                  )) : (
+                    <p className="text-sm text-slate-500">No question reviews recorded yet.</p>
+                  )}
                 </div>
               }
             />
           </div>
 
-          <aside className="space-y-6">
+          {/* Right Sidebar */}
+          <div className="space-y-6">
             <Panel
-              eyebrow="Recommendation Engine"
-              title="Next improvements"
+              eyebrow="Targeted Coaching"
+              title="Next actions to improve"
               body={
                 <div className="space-y-4">
                   {recommendations.length > 0 ? recommendations.map((item, index) => (
-                    <div key={`${item.title}-${index}`} className="group rounded-[1.4rem] border border-slate-200 bg-white p-4 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 ease-emil-out">
+                    <div key={`${item.title}-${index}`} className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm transition-all hover:shadow-md duration-300 ease-emil-out">
                       <div className="flex items-center justify-between gap-3">
-                        <span className="text-sm font-extrabold text-slate-900">{item.title}</span>
-                        <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.2em] ${item.priority === 'high' ? 'bg-rose-100 text-rose-600' : 'bg-[#cdebe7] text-[#4a8394]'}`}>
-                          {item.priority}
+                        <h4 className="text-base font-bold text-slate-900">{item.title}</h4>
+                        <span className={`rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wider ${
+                          item.priority === 'high' ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-700'
+                        }`}>
+                          {item.priority} priority
                         </span>
                       </div>
-                      <p className="mt-3 text-sm leading-relaxed text-slate-500">{item.reason}</p>
-                      <p className="mt-3 text-sm font-semibold leading-relaxed text-slate-800">{item.action}</p>
+                      <p className="mt-3 text-sm leading-relaxed text-slate-600">{item.reason}</p>
+                      <div className="mt-4 rounded-[1.25rem] bg-slate-50 p-4 border border-slate-100">
+                        <p className="text-xs font-bold uppercase tracking-[0.22em] text-slate-400">Action</p>
+                        <p className="mt-1 text-sm font-semibold text-slate-800">{item.action}</p>
+                      </div>
                     </div>
-                  )) : <p className="text-sm text-slate-500">No saved recommendations were available for this session.</p>}
+                  )) : (
+                    <p className="text-sm text-slate-500">No specific action items needed based on the current scoring.</p>
+                  )}
                 </div>
               }
             />
 
             <Panel
-              eyebrow="Speaking Evidence"
-              title="Measured delivery"
+              eyebrow="Behavioral Signals"
+              title="Workplace heuristics"
+              body={
+                <div className="space-y-3">
+                  {Object.entries(behavioral).map(([key, value]) => (
+                    <div key={key} className="flex items-center justify-between rounded-[1.25rem] border border-slate-100 bg-white p-4 shadow-sm">
+                      <span className="text-sm font-semibold capitalize text-slate-700">{key.replace('_', ' ')}</span>
+                      <span className="text-base font-bold text-slate-900">{value} / 10</span>
+                    </div>
+                  ))}
+                </div>
+              }
+            />
+
+            <Panel
+              eyebrow="Speech & Pace"
+              title="Delivery heuristics"
+              body={
+                <div className="grid grid-cols-2 gap-3">
+                  <SpeechStat label="Answer Latency" value={formatOptionalMetric(speech.latency, 's')} />
+                  <SpeechStat label="Speaking Pace" value={formatOptionalMetric(speech.speechRate, ' wpm')} />
+                  <SpeechStat label="Filler Words" value={String(speech.fillerWordCount)} />
+                  <SpeechStat label="Confidence Signal" value={speech.confidenceSignal} />
+                </div>
+              }
+            />
+
+            <Panel
+              eyebrow="Evidence Summaries"
+              title="Signals logged"
               body={
                 <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <SpeechStat label="Latency" value={formatOptionalMetric(speech.latency, 's')} />
-                    <SpeechStat label="Speech Rate" value={formatOptionalMetric(speech.speechRate, 'wpm')} />
+                  <div className="rounded-[1.25rem] border border-slate-100 bg-white p-4">
+                    <p className="text-xs font-bold uppercase tracking-[0.22em] text-slate-400">Technical Highlights</p>
+                    <div className="mt-3 space-y-2">
+                      {evidenceSummary.technical.length > 0 ? evidenceSummary.technical.map((item, index) => (
+                        <p key={index} className="text-xs leading-relaxed text-slate-600">• {item}</p>
+                      )) : <p className="text-xs text-slate-400">No explicit technical highlights were summarized.</p>}
+                    </div>
                   </div>
-                  <SpeechStat label="Confidence Signal" value={speech.confidenceSignal} />
-                  <SpeechStat label="Filler Words" value={String(speech.fillerWordCount)} />
-                  <ReviewList title="Speaking findings" items={evidenceSummary.speaking} emptyMessage="No speaking evidence was captured for this session." />
+
+                  <div className="rounded-[1.25rem] border border-slate-100 bg-white p-4">
+                    <p className="text-xs font-bold uppercase tracking-[0.22em] text-slate-400">Speaking Highlights</p>
+                    <div className="mt-3 space-y-2">
+                      {evidenceSummary.speaking.length > 0 ? evidenceSummary.speaking.map((item, index) => (
+                        <p key={index} className="text-xs leading-relaxed text-slate-600">• {item}</p>
+                      )) : <p className="text-xs text-slate-400">No explicit speaking highlights were summarized.</p>}
+                    </div>
+                  </div>
                 </div>
               }
             />
-
-            <Panel
-              eyebrow="Technical Evidence"
-              title="Why these recommendations exist"
-              body={<ReviewList title="Derived from saved answers" items={evidenceSummary.technical} emptyMessage="No technical evidence was available." />}
-            />
-          </aside>
+          </div>
         </section>
       </div>
     </main>
@@ -285,27 +506,20 @@ function AnalyticsDashboardContent() {
 
 function AnalyticsLoadingState() {
   return (
-    <div className="flex h-screen w-full items-center justify-center bg-[#f4f8fb]">
-      <div className="h-10 w-10 rounded-full border-4 border-slate-200 border-t-[#4a8394] animate-[spin_0.8s_linear_infinite]"></div>
-    </div>
-  );
-}
-
-function Panel({ eyebrow, title, body }: { eyebrow: string; title: string; body: React.ReactNode }) {
-  return (
-    <div className="rounded-[2rem] border border-slate-200 bg-white/90 p-6 shadow-sm hover:shadow-md transition-all duration-300 ease-emil-out backdrop-blur-xl">
-      <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[#4a8394]">{eyebrow}</p>
-      <h2 className="mt-2 text-xl font-extrabold text-slate-900">{title}</h2>
-      <div className="mt-6">{body}</div>
+    <div className="flex min-h-screen items-center justify-center bg-[#f4f8fb] text-slate-800">
+      <div className="text-center">
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-[#72abad] border-t-transparent mx-auto"></div>
+        <p className="mt-4 text-sm font-semibold tracking-wide text-slate-600">Loading interview report...</p>
+      </div>
     </div>
   );
 }
 
 function SummaryChip({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-[1.25rem] border border-slate-200 bg-slate-50/80 p-4 transition-all hover:bg-white hover:shadow-sm duration-300 ease-emil-out">
-      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">{label}</p>
-      <p className="mt-2 text-sm font-semibold text-slate-900">{value}</p>
+    <div className="rounded-[1.5rem] border border-slate-200 bg-white/80 p-4 shadow-sm">
+      <p className="text-xs font-bold uppercase tracking-[0.22em] text-slate-400">{label}</p>
+      <p className="mt-2 text-lg font-extrabold text-slate-900">{value}</p>
     </div>
   );
 }
@@ -316,35 +530,44 @@ function StatCard({
   suffix,
   tone,
   toneClass,
-  accent = false,
+  accent,
 }: {
   label: string;
   value: number;
   suffix: string;
   tone: string;
-  toneClass: 'emerald' | 'indigo' | 'cyan' | 'amber';
+  toneClass: 'indigo' | 'emerald' | 'cyan' | 'amber';
   accent?: boolean;
 }) {
-  const toneStyles = {
-    emerald: 'border-emerald-200 bg-emerald-50 text-emerald-700',
-    indigo: 'border-[#cdebe7] bg-[#cdebe7]/30 text-[#4a8394]',
-    cyan: 'border-cyan-200 bg-cyan-50 text-cyan-700',
-    amber: 'border-amber-200 bg-amber-50 text-amber-700',
+  const toneBg = {
+    indigo: 'bg-indigo-50 text-indigo-700 border-indigo-100',
+    emerald: 'bg-emerald-50 text-emerald-700 border-emerald-100',
+    cyan: 'bg-cyan-50 text-cyan-700 border-cyan-100',
+    amber: 'bg-amber-50 text-amber-700 border-amber-100',
   }[toneClass];
 
   return (
-    <div className="group rounded-[1.75rem] border border-slate-200 bg-white/85 p-6 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 ease-emil-out backdrop-blur-xl">
-      <p className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-500">{label}</p>
-      <div className="mt-4 flex items-end gap-2">
-        <span className={accent ? 'bg-gradient-to-r from-[#4a8394] to-[#72abad] bg-clip-text text-5xl font-extrabold text-transparent' : 'text-5xl font-extrabold text-slate-900'}>
-          {value}
-        </span>
-        <span className="pb-1 text-sm font-medium text-slate-500">{suffix}</span>
+    <div className={`rounded-[2rem] border p-6 transition-all duration-300 ease-emil-out hover:-translate-y-1 hover:shadow-md ${
+      accent ? 'border-[#72abad]/40 bg-white/95 shadow-[0_10px_30px_rgba(114,171,173,0.1)]' : 'border-slate-200 bg-white/80 shadow-sm'
+    }`}>
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-xs font-bold uppercase tracking-[0.22em] text-slate-400">{label}</span>
+        <span className={`rounded-full border px-2.5 py-0.5 text-[11px] font-bold ${toneBg}`}>{tone}</span>
       </div>
-      <div className={`mt-4 inline-flex rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] ${toneStyles}`}>
-        {tone}
-      </div>
+      <p className="mt-4 text-3xl font-extrabold text-slate-900 md:text-4xl">
+        {value} <span className="text-base font-semibold text-slate-400">{suffix}</span>
+      </p>
     </div>
+  );
+}
+
+function Panel({ eyebrow, title, body }: { eyebrow: string; title: string; body: React.ReactNode }) {
+  return (
+    <section className="rounded-[2rem] border border-slate-200 bg-white/75 p-6 shadow-sm backdrop-blur-xl transition-all duration-300 ease-emil-out hover:shadow-md">
+      <p className="text-xs font-bold uppercase tracking-[0.25em] text-[#4a8394]">{eyebrow}</p>
+      <h3 className="mt-1 text-xl font-extrabold text-slate-900">{title}</h3>
+      <div className="mt-6">{body}</div>
+    </section>
   );
 }
 
@@ -465,10 +688,10 @@ function normalizeBehavioral(value: FinalReport['behavioral']) {
 
 function normalizeSpeech(value: FinalReport['speech']) {
   return {
-    latency: toNullableNumber(value?.latency),
-    speechRate: toNullableNumber(value?.speechRate),
-    confidenceSignal: typeof value?.confidenceSignal === 'string' ? value.confidenceSignal : 'unknown',
-    fillerWordCount: toSafeNumber(value?.fillerWordCount),
+    latency: typeof value?.latency === 'number' && Number.isFinite(value.latency) ? value.latency : null,
+    speechRate: typeof value?.speechRate === 'number' && Number.isFinite(value.speechRate) ? value.speechRate : null,
+    confidenceSignal: typeof value?.confidenceSignal === 'string' && value.confidenceSignal ? value.confidenceSignal : 'unknown',
+    fillerWordCount: typeof value?.fillerWordCount === 'number' && Number.isFinite(value.fillerWordCount) ? value.fillerWordCount : 0,
   };
 }
 
@@ -480,21 +703,30 @@ function normalizeEvidenceSummary(value: FinalReport['evidence_summary']) {
 }
 
 function isRecommendationItem(value: unknown): value is RecommendationItem {
-  if (!value || typeof value !== 'object') return false;
-  const item = value as Partial<RecommendationItem>;
-  return typeof item.title === 'string' && typeof item.reason === 'string' && typeof item.action === 'string';
+  if (typeof value !== 'object' || value === null) return false;
+  const v = value as Partial<RecommendationItem>;
+  return typeof v.title === 'string' && typeof v.reason === 'string' && typeof v.action === 'string' && (v.priority === 'high' || v.priority === 'medium');
 }
 
 function isQuestionReview(value: unknown): value is QuestionReview {
-  if (!value || typeof value !== 'object') return false;
-  const review = value as Partial<QuestionReview>;
-  return typeof review.phase === 'string' && typeof review.question === 'string';
+  if (typeof value !== 'object' || value === null) return false;
+  const v = value as Partial<QuestionReview>;
+  return (
+    typeof v.phase === 'string' &&
+    typeof v.question === 'string' &&
+    typeof v.answerPreview === 'string' &&
+    typeof v.tip === 'string' &&
+    typeof v.scores === 'object' &&
+    v.scores !== null &&
+    typeof v.behavioral === 'object' &&
+    v.behavioral !== null &&
+    typeof v.speech === 'object' &&
+    v.speech !== null &&
+    Array.isArray(v.strengths) &&
+    Array.isArray(v.weaknesses)
+  );
 }
 
 function toSafeNumber(value: unknown): number {
   return typeof value === 'number' && Number.isFinite(value) ? value : 0;
-}
-
-function toNullableNumber(value: unknown): number | null {
-  return typeof value === 'number' && Number.isFinite(value) ? value : null;
 }

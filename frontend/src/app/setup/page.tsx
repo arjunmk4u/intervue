@@ -1,17 +1,26 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+import Link from 'next/link';
+import { useAuth } from '@/context/AuthContext';
+import { apiFetch } from '@/lib/api';
 
 export default function SetupPage() {
   const router = useRouter();
+  const { user, loading: authLoading, logout } = useAuth();
+
   const [domain, setDomain] = useState('Software Engineer');
   const [experienceLevel, setExperienceLevel] = useState('Fresher');
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push('/login');
+    }
+  }, [user, authLoading, router]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -26,7 +35,7 @@ export default function SetupPage() {
     setError('');
 
     try {
-      const startRes = await fetch(`${BACKEND_URL}/api/start-session`, {
+      const startRes = await apiFetch('/api/start-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ domain, experienceLevel }),
@@ -40,7 +49,7 @@ export default function SetupPage() {
         const formData = new FormData();
         formData.append('resume', file);
         formData.append('sessionId', sessionId);
-        const uploadRes = await fetch(`${BACKEND_URL}/api/upload-resume`, {
+        const uploadRes = await apiFetch('/api/upload-resume', {
           method: 'POST',
           body: formData,
         });
@@ -59,6 +68,14 @@ export default function SetupPage() {
     }
   };
 
+  if (authLoading || !user) {
+    return (
+      <main className="h-screen bg-[#f4f8fb] text-slate-800 flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-[#72abad] border-t-transparent rounded-full animate-spin" />
+      </main>
+    );
+  }
+
   return (
     <main className="h-screen bg-[#f4f8fb] text-slate-800 font-sans relative overflow-hidden flex flex-col">
       {/* Background */}
@@ -68,7 +85,7 @@ export default function SetupPage() {
 
       {/* Navbar */}
       <nav className="relative z-20 flex items-center justify-between px-8 py-4 max-w-7xl mx-auto w-full shrink-0">
-        <button onClick={() => router.push('/')} className="flex items-center gap-2 group">
+        <Link href="/" className="flex items-center gap-2 group">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-[#72abad] to-[#4a8394] flex items-center justify-center shadow-[0_0_15px_rgba(114,171,173,0.4)]">
             <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 100 140" xmlns="http://www.w3.org/2000/svg">
               <circle cx="50" cy="20" r="17" />
@@ -78,14 +95,29 @@ export default function SetupPage() {
             </svg>
           </div>
           <span className="text-xl font-bold tracking-tight text-slate-900 group-hover:text-[#4a8394] transition-colors">Intervue</span>
-        </button>
-        <button
-          onClick={() => router.push('/')}
-          className="flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-slate-800 transition-colors"
-        >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
-          Back to home
-        </button>
+        </Link>
+        
+        <div className="flex items-center gap-4">
+          <Link
+            href="/dashboard"
+            className="text-xs font-bold text-slate-600 hover:text-slate-900 transition-colors"
+          >
+            Dashboard
+          </Link>
+          <button
+            onClick={() => logout()}
+            className="text-xs font-semibold text-slate-500 hover:text-slate-800 transition-colors"
+          >
+            Sign Out
+          </button>
+          <Link
+            href="/"
+            className="flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-slate-800 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+            Home
+          </Link>
+        </div>
       </nav>
 
       {/* Setup Card */}
@@ -225,7 +257,7 @@ export default function SetupPage() {
                     )}
                   </div>
                 </button>
-                <p className="text-center text-xs text-slate-400 mt-4">Your session is private and not shared with anyone.</p>
+                <p className="text-center text-xs text-slate-400 mt-4">Your session is private and saved to your account.</p>
               </div>
 
             </div>
