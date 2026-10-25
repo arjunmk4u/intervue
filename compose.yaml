@@ -1,0 +1,33 @@
+services:
+  backend:
+    build:
+      context: ./backend
+    image: intervue-backend:1.1
+    container_name: intervue-backend-compose
+    ports:
+      - "5000:5000"
+    env_file:
+      - ./backend/.env
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://localhost:5000/api/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_BACKEND_URL: http://localhost:5000
+    image: intervue-frontend:1.0
+    container_name: intervue-frontend-compose
+    ports:
+      - "3000:3000"
+    depends_on:
+      backend:
+        condition: service_healthy

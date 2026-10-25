@@ -47,3 +47,6 @@ yarn-error.log*
 
 # Misc caches
 *.tsbuildinfo
+
+#Misc
+project.md
