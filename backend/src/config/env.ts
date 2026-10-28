@@ -7,6 +7,7 @@ export const env = {
   PORT: Number(process.env.PORT) || 5000,
   JWT_SECRET: process.env.JWT_SECRET || '',
   GROQ_MODEL: process.env.GROQ_MODEL || 'openai/gpt-oss-120b',
+  VOICE_DIAGNOSTIC_TOKEN: process.env.VOICE_DIAGNOSTIC_TOKEN || '',
 };
 
 // Validate required keys
