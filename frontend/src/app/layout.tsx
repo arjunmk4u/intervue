@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import { AuthProvider } from "@/context/AuthContext";
 import "./globals.css";
@@ -15,11 +15,18 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "AI Interviewer",
-  description: "Live Voice and Video AI Interview Platform",
+  title: "Intervue — Live Voice AI Interviewer",
+  description: "Live Voice and Video AI Interview Platform for technical and behavioral preparation.",
   icons: {
     icon: "/icon.png",
   },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  themeColor: "#4a8394",
 };
 
 export default function RootLayout({

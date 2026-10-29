@@ -77,14 +77,14 @@ export default function SetupPage() {
   }
 
   return (
-    <main className="h-screen bg-[#f4f8fb] text-slate-800 font-sans relative overflow-hidden flex flex-col">
+    <main className="min-h-[100dvh] bg-[#f4f8fb] text-slate-800 font-sans relative flex flex-col justify-between">
       {/* Background */}
       <div className="absolute top-0 left-0 right-0 h-[500px] bg-gradient-to-b from-[#cdebe7]/50 via-[#f4f8fb] to-transparent pointer-events-none z-0" />
       <div className="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] rounded-full bg-[#72abad]/15 blur-[130px] pointer-events-none z-0" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] rounded-full bg-[#cdebe7]/40 blur-[120px] pointer-events-none z-0" />
 
       {/* Navbar */}
-      <nav className="relative z-20 flex items-center justify-between px-8 py-4 max-w-7xl mx-auto w-full shrink-0">
+      <nav className="relative z-20 flex items-center justify-between px-4 sm:px-8 py-3.5 sm:py-4 max-w-7xl mx-auto w-full shrink-0">
         <Link href="/" className="flex items-center gap-2 group">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-[#72abad] to-[#4a8394] flex items-center justify-center shadow-[0_0_15px_rgba(114,171,173,0.4)]">
             <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 100 140" xmlns="http://www.w3.org/2000/svg">
@@ -94,10 +94,10 @@ export default function SetupPage() {
               <path d="M48 58 L46 80 L50 90 L54 80 L52 58 Z" fill="rgba(74,131,148,0.6)" />
             </svg>
           </div>
-          <span className="text-xl font-bold tracking-tight text-slate-900 group-hover:text-[#4a8394] transition-colors">Intervue</span>
+          <span className="text-lg sm:text-xl font-bold tracking-tight text-slate-900 group-hover:text-[#4a8394] transition-colors">Intervue</span>
         </Link>
         
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2.5 sm:gap-4">
           <Link
             href="/dashboard"
             className="text-xs font-bold text-slate-600 hover:text-slate-900 transition-colors"
@@ -106,22 +106,22 @@ export default function SetupPage() {
           </Link>
           <button
             onClick={() => logout()}
-            className="text-xs font-semibold text-slate-500 hover:text-slate-800 transition-colors"
+            className="hidden sm:inline-block text-xs font-semibold text-slate-500 hover:text-slate-800 transition-colors"
           >
             Sign Out
           </button>
           <Link
             href="/"
-            className="flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-slate-800 transition-colors"
+            className="flex items-center gap-1 text-xs font-medium text-slate-500 hover:text-slate-800 transition-colors"
           >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
             Home
           </Link>
         </div>
       </nav>
 
       {/* Setup Card */}
-      <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 py-6 overflow-y-auto">
+      <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 sm:px-6 py-6 sm:py-8 w-full">
         <div className="w-full max-w-lg">
 
           {/* Header */}
@@ -130,17 +130,17 @@ export default function SetupPage() {
               <span className="w-1.5 h-1.5 rounded-full bg-[#4a8394] animate-pulse" />
               Interview Setup
             </div>
-            <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight mb-1">Configure Your Session</h1>
-            <p className="text-sm text-slate-500">Set up your personalised interview environment in seconds.</p>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight mb-1">Configure Your Session</h1>
+            <p className="text-xs sm:text-sm text-slate-500">Set up your personalised interview environment in seconds.</p>
           </div>
 
           {/* Card */}
-          <div className="bg-white border border-slate-200 rounded-[2rem] p-7 shadow-[0_20px_60px_rgba(74,131,148,0.12)]">
+          <div className="bg-white border border-slate-200 rounded-2xl sm:rounded-[2rem] p-5 sm:p-7 shadow-[0_20px_60px_rgba(74,131,148,0.12)]">
 
             {error && (
-              <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-600 rounded-xl text-sm font-medium flex items-center gap-2">
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-600 rounded-xl text-xs sm:text-sm font-medium flex items-center gap-2 break-words">
                 <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                {error}
+                <span>{error}</span>
               </div>
             )}
 
@@ -155,7 +155,7 @@ export default function SetupPage() {
                   <select
                     value={domain}
                     onChange={(e) => setDomain(e.target.value)}
-                    className="w-full pl-4 pr-10 py-3.5 bg-[#f4f8fb] border border-slate-200 hover:border-[#72abad] focus:border-[#4a8394] rounded-xl text-slate-800 outline-none appearance-none transition-all"
+                    className="w-full pl-4 pr-10 py-3 sm:py-3.5 bg-[#f4f8fb] border border-slate-200 hover:border-[#72abad] focus:border-[#4a8394] rounded-xl text-slate-800 text-base sm:text-sm outline-none appearance-none transition-all min-h-[44px]"
                   >
                     <option value="Software Engineer">Software Engineer</option>
                     <option value="Data Scientist">Data Scientist</option>
@@ -181,7 +181,7 @@ export default function SetupPage() {
                   <select
                     value={experienceLevel}
                     onChange={(e) => setExperienceLevel(e.target.value)}
-                    className="w-full pl-4 pr-10 py-3.5 bg-[#f4f8fb] border border-slate-200 hover:border-[#72abad] focus:border-[#4a8394] rounded-xl text-slate-800 outline-none appearance-none transition-all"
+                    className="w-full pl-4 pr-10 py-3 sm:py-3.5 bg-[#f4f8fb] border border-slate-200 hover:border-[#72abad] focus:border-[#4a8394] rounded-xl text-slate-800 text-base sm:text-sm outline-none appearance-none transition-all min-h-[44px]"
                   >
                     <option value="Fresher">Fresher (New Grad)</option>
                     <option value="1-2 years">Junior (1-2 years)</option>
@@ -202,7 +202,7 @@ export default function SetupPage() {
                 </div>
 
                 {file ? (
-                  <div className="flex items-center gap-3 p-4 bg-[#cdebe7]/30 border border-[#72abad]/40 rounded-xl">
+                  <div className="flex items-center gap-3 p-3.5 sm:p-4 bg-[#cdebe7]/30 border border-[#72abad]/40 rounded-xl">
                     <div className="w-9 h-9 rounded-lg bg-[#4a8394]/10 flex items-center justify-center shrink-0">
                       <svg className="w-5 h-5 text-[#4a8394]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                     </div>
@@ -210,20 +210,24 @@ export default function SetupPage() {
                       <p className="text-sm font-semibold text-[#4a8394] truncate">{file.name}</p>
                       <p className="text-xs text-slate-500">{(file.size / 1024).toFixed(0)} KB</p>
                     </div>
-                    <button onClick={removeFile} className="text-slate-400 hover:text-red-500 transition-colors shrink-0">
+                    <button
+                      onClick={removeFile}
+                      aria-label="Remove uploaded resume"
+                      className="p-1.5 text-slate-400 hover:text-red-500 transition-colors shrink-0 rounded-lg hover:bg-red-50 min-w-[36px] min-h-[36px] flex items-center justify-center"
+                    >
                       <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                     </button>
                   </div>
                 ) : (
-                  <label className="flex items-center gap-4 p-4 border-2 border-dashed border-slate-200 hover:border-[#72abad] bg-slate-50 hover:bg-[#cdebe7]/10 rounded-xl cursor-pointer transition-all duration-200 group">
+                  <label className="flex items-center gap-3 sm:gap-4 p-3.5 sm:p-4 border-2 border-dashed border-slate-200 hover:border-[#72abad] bg-slate-50 hover:bg-[#cdebe7]/10 rounded-xl cursor-pointer transition-all duration-200 group min-h-[64px]">
                     <input type="file" accept=".pdf,.docx" onChange={handleFileChange} className="hidden" />
                     <div className="w-10 h-10 rounded-xl bg-white border border-slate-200 group-hover:border-[#72abad] flex items-center justify-center transition-colors shadow-sm shrink-0">
                       <svg className="w-5 h-5 text-slate-400 group-hover:text-[#4a8394] transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                       </svg>
                     </div>
-                    <div>
-                      <p className="text-sm font-semibold text-slate-600 group-hover:text-slate-800 transition-colors">Drop your resume here</p>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-slate-600 group-hover:text-slate-800 transition-colors truncate">Drop your resume here</p>
                       <p className="text-xs text-slate-400 mt-0.5">PDF or DOCX, max 10MB</p>
                     </div>
                   </label>
@@ -231,14 +235,14 @@ export default function SetupPage() {
               </div>
 
               {/* Submit Button */}
-              <div className="pt-1">
+              <div className="pt-2">
                 <button
                   onClick={startSession}
                   disabled={loading}
-                  className="w-full relative overflow-hidden group py-4 rounded-xl font-bold text-white bg-[#4a8394] hover:bg-[#3d6c7a] disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-[0_4px_14px_0_rgba(74,131,148,0.39)] hover:shadow-[0_6px_20px_rgba(74,131,148,0.3)]"
+                  className="w-full relative overflow-hidden group py-3.5 sm:py-4 rounded-xl font-bold text-white bg-[#4a8394] hover:bg-[#3d6c7a] disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-[0_4px_14px_0_rgba(74,131,148,0.39)] hover:shadow-[0_6px_20px_rgba(74,131,148,0.3)] min-h-[48px]"
                 >
                   <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 -translate-x-[100%] group-hover:translate-x-[100%] transition-transform duration-700 ease-in-out" />
-                  <div className="flex justify-center items-center gap-2 relative z-10">
+                  <div className="flex justify-center items-center gap-2 relative z-10 text-sm sm:text-base">
                     {loading ? (
                       <>
                         <svg className="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
@@ -257,13 +261,18 @@ export default function SetupPage() {
                     )}
                   </div>
                 </button>
-                <p className="text-center text-xs text-slate-400 mt-4">Your session is private and saved to your account.</p>
+                <p className="text-center text-xs text-slate-400 mt-3 sm:mt-4">Your session is private and saved to your account.</p>
               </div>
 
             </div>
           </div>
         </div>
       </div>
+
+      {/* Footer */}
+      <footer className="relative z-10 py-3 text-center text-xs text-slate-400">
+        © 2025 Intervue. AI-powered interview training.
+      </footer>
     </main>
   );
 }

@@ -454,14 +454,14 @@ export default function InterviewRoom() {
   };
 
   return (
-    <main className="h-screen bg-[#f4f8fb] text-slate-800 font-sans selection:bg-[#72abad]/30 overflow-hidden relative flex flex-col">
+    <main className="min-h-[100dvh] h-[100dvh] bg-[#f4f8fb] text-slate-800 font-sans selection:bg-[#72abad]/30 overflow-hidden relative flex flex-col">
       {/* Background Decorators */}
       <div className="absolute top-0 left-0 right-0 h-[500px] bg-gradient-to-b from-[#cdebe7]/50 via-[#f4f8fb] to-transparent pointer-events-none z-0"></div>
       <div className="absolute top-[-10%] left-[-5%] w-[400px] h-[400px] rounded-full bg-[#72abad]/20 blur-[100px] pointer-events-none z-0"></div>
       <div className="absolute bottom-[10%] right-[-5%] w-[400px] h-[400px] rounded-full bg-[#cdebe7]/40 blur-[100px] pointer-events-none z-0"></div>
 
       {/* Navbar - Fixed Height */}
-      <nav className="relative z-30 flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-white/80 backdrop-blur-md">
+      <nav className="relative z-30 flex items-center justify-between px-3 sm:px-6 py-2.5 sm:py-3.5 border-b border-slate-200 bg-white/80 backdrop-blur-md shrink-0">
         <div className="flex items-center gap-2 cursor-pointer" onClick={() => router.push('/')}>
           <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-[#72abad] to-[#4a8394] flex items-center justify-center shadow-[0_0_15px_rgba(114,171,173,0.3)]">
             <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 100 140" xmlns="http://www.w3.org/2000/svg">
@@ -470,23 +470,25 @@ export default function InterviewRoom() {
               <path d="M44 44 L50 58 L56 44 L52 44 L50 50 L48 44 Z" fill="rgba(74,131,148,0.6)" />
               <path d="M48 58 L46 80 L50 90 L54 80 L52 58 Z" fill="rgba(74,131,148,0.6)" /></svg>
           </div>
-          <span className="text-xl font-bold tracking-tight text-slate-900 font-manrope">Intervue</span>
+          <span className="text-lg sm:text-xl font-bold tracking-tight text-slate-900 font-manrope">Intervue</span>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-4">
           <Link
             href="/dashboard"
             className="hidden sm:inline-block text-xs font-bold text-slate-600 hover:text-slate-900 transition-colors"
           >
             Dashboard
           </Link>
-          <div className="hidden md:flex items-center gap-2 px-3 py-1 rounded-full border border-[#72abad]/30 bg-[#cdebe7]/50 text-[10px] font-bold text-[#4a8394] uppercase tracking-widest">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#4a8394] animate-pulse"></span>
-            {phase.replace('-', ' ')}
-          </div>
+          {phase && (
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-[#72abad]/30 bg-[#cdebe7]/50 text-[9px] sm:text-[10px] font-bold text-[#4a8394] uppercase tracking-wider max-w-[120px] sm:max-w-none truncate">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#4a8394] animate-pulse shrink-0"></span>
+              <span className="truncate">{phase.replace('-', ' ')}</span>
+            </div>
+          )}
           <button
             onClick={() => router.push(`/analytics?sessionId=${sessionId}`)}
-            className="px-4 py-1.5 rounded-full text-[10px] font-bold text-slate-600 hover:text-slate-900 border border-slate-300 hover:bg-slate-100/50 uppercase tracking-widest transition-all active:scale-[0.97] hover:scale-[1.02] duration-200 ease-emil-out"
+            className="px-3 sm:px-4 py-1.5 rounded-full text-[10px] sm:text-xs font-bold text-slate-600 hover:text-slate-900 border border-slate-300 hover:bg-slate-100/50 uppercase tracking-widest transition-all active:scale-[0.97] hover:scale-[1.02] duration-200 ease-emil-out min-h-[34px] flex items-center justify-center whitespace-nowrap"
           >
             End Interview
           </button>
@@ -495,30 +497,30 @@ export default function InterviewRoom() {
 
       {/* Chat Area - Scrollable */}
       <div className="flex-1 overflow-y-auto relative z-10 scroll-smooth custom-scrollbar">
-        <div className="max-w-4xl mx-auto px-4 md:px-8 py-16 space-y-12">
+        <div className="max-w-4xl mx-auto px-3 sm:px-6 md:px-8 pt-4 sm:pt-8 pb-10 space-y-4 sm:space-y-6 md:space-y-8">
           {messages.map((msg, idx) => (
             <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2 duration-300 ease-emil-out transform-gpu`}>
               <div
-                className={`group relative max-w-[90%] md:max-w-[75%] rounded-3xl p-6 md:p-8 text-base md:text-lg transition-all ${msg.role === 'user'
+                className={`group relative max-w-[92%] sm:max-w-[85%] md:max-w-[75%] rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-8 text-sm sm:text-base md:text-lg transition-all break-words [overflow-wrap:anywhere] ${msg.role === 'user'
                   ? 'bg-slate-900 border border-slate-700 text-white rounded-tr-sm shadow-[0_20px_40px_-15px_rgba(0,0,0,0.3)]'
                   : msg.role === 'system'
-                    ? 'bg-red-50/80 text-red-600 border border-red-200 italic w-full text-center py-4 rounded-2xl'
+                    ? 'bg-red-50/80 text-red-600 border border-red-200 italic w-full text-center py-3 sm:py-4 px-4 rounded-xl sm:rounded-2xl'
                     : 'bg-white/90 text-slate-800 rounded-tl-sm border border-slate-200 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.05)] backdrop-blur-xl'
                   }`}
               >
                 {msg.role === 'assistant' && (
-                  <div className="absolute -top-7 left-2 flex items-center gap-2">
-                    <div className="w-5 h-5 rounded-full bg-gradient-to-tr from-[#72abad] to-[#4a8394] flex items-center justify-center shadow-sm">
-                      <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 100 140" xmlns="http://www.w3.org/2000/svg">
+                  <div className="mb-2 flex items-center gap-1.5 sm:gap-2">
+                    <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-gradient-to-tr from-[#72abad] to-[#4a8394] flex items-center justify-center shadow-sm shrink-0">
+                      <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white" fill="currentColor" viewBox="0 0 100 140" xmlns="http://www.w3.org/2000/svg">
                         <circle cx="50" cy="20" r="17" />
                         <path d="M15 52 C15 48 22 44 30 44 L44 44 L50 58 L56 44 L70 44 C78 44 85 48 85 52 L68 118 C67 122 60 126 50 126 C40 126 33 122 32 118 Z" />
                       </svg>
                     </div>
-                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">Interviewer</span>
+                    <span className="text-[10px] sm:text-[11px] font-bold text-slate-500 uppercase tracking-widest">Interviewer</span>
                   </div>
                 )}
                 {msg.role === 'user' && (
-                  <div className="absolute -top-7 right-2 text-[11px] font-bold text-slate-500 uppercase tracking-widest text-right">You</div>
+                  <div className="mb-2 text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-widest text-right">You</div>
                 )}
                 <p className="whitespace-pre-wrap leading-relaxed font-medium">{msg.content}</p>
               </div>
@@ -527,35 +529,35 @@ export default function InterviewRoom() {
 
           {(loading || isConverting || closingStatus) && (
             <div className="flex justify-start animate-in fade-in slide-in-from-bottom-2 duration-300 ease-emil-out">
-              <div className="bg-white/80 border border-slate-200 rounded-2xl rounded-tl-none p-6 flex flex-col items-center justify-center gap-4 min-w-[160px] backdrop-blur-sm">
+              <div className="bg-white/80 border border-slate-200 rounded-2xl rounded-tl-none p-4 sm:p-6 flex flex-col items-center justify-center gap-3 sm:gap-4 min-w-[140px] sm:min-w-[160px] backdrop-blur-sm shadow-sm">
                 <div className="flex gap-2">
                   <div className="w-2 h-2 rounded-full bg-[#4a8394] animate-[bounce_1s_infinite_0ms]"></div>
                   <div className="w-2 h-2 rounded-full bg-[#72abad] animate-[bounce_1s_infinite_200ms]"></div>
                   <div className="w-2 h-2 rounded-full bg-[#cdebe7] animate-[bounce_1s_infinite_400ms]"></div>
                 </div>
-                <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
+                <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest text-center px-1">
                   {closingStatus || (isConverting ? 'Transcribing...' : 'Thinking...')}
                 </span>
               </div>
             </div>
           )}
-          <div ref={messagesEndRef} className="h-32" />
+          <div ref={messagesEndRef} className="h-20 sm:h-28" />
         </div>
       </div>
 
-      {/* Control Area - Fixed at Bottom */}
-      <div className="relative z-20 pb-10 pt-4 px-6 bg-gradient-to-t from-[#f4f8fb] via-[#f4f8fb] to-transparent">
+      {/* Control Area - Bottom Controls with Safe Area */}
+      <div className="relative z-20 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] pt-2 sm:pt-3 px-4 sm:px-6 bg-gradient-to-t from-[#f4f8fb] via-[#f4f8fb]/95 to-transparent border-t border-slate-200/40 shrink-0">
         <div className="max-w-3xl mx-auto flex flex-col items-center relative">
 
-          {/* Speaking/Recording Indicator Overlay */}
-          <div className={`absolute -top-20 left-1/2 -translate-x-1/2 transition-all duration-500 ease-out ${isSpeaking || isRecording || isConverting || closingStatus ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-8 scale-95 pointer-events-none'}`}>
-            <div className="flex items-center gap-4 px-8 py-3 rounded-full bg-white/95 border border-slate-200 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.15)] backdrop-blur-xl">
-              <div className="flex gap-1.5 items-center justify-center w-6">
-                <div className={`w-1.5 bg-slate-800 rounded-full transition-all duration-300 ${isSpeaking || isRecording ? 'h-4 animate-[stretch_0.5s_infinite_alternate]' : 'h-1.5'}`}></div>
-                <div className={`w-1.5 bg-slate-600 rounded-full transition-all duration-300 ${isSpeaking || isRecording ? 'h-6 animate-[stretch_0.5s_infinite_alternate_0.1s]' : 'h-1.5'}`}></div>
-                <div className={`w-1.5 bg-slate-400 rounded-full transition-all duration-300 ${isSpeaking || isRecording ? 'h-3 animate-[stretch_0.5s_infinite_alternate_0.2s]' : 'h-1.5'}`}></div>
+          {/* Speaking/Recording Indicator */}
+          <div className={`transition-all duration-300 ease-out mb-2 ${isSpeaking || isRecording || isConverting || closingStatus ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-2 scale-95 pointer-events-none h-0 overflow-hidden mb-0'}`}>
+            <div className="flex items-center gap-2 sm:gap-3 px-4 sm:px-6 py-1.5 sm:py-2 rounded-full bg-white/95 border border-slate-200 shadow-md backdrop-blur-xl max-w-[90vw]">
+              <div className="flex gap-1 items-center justify-center w-5 shrink-0">
+                <div className={`w-1 bg-slate-800 rounded-full transition-all duration-300 ${isSpeaking || isRecording ? 'h-3.5 animate-[stretch_0.5s_infinite_alternate]' : 'h-1'}`}></div>
+                <div className={`w-1 bg-slate-600 rounded-full transition-all duration-300 ${isSpeaking || isRecording ? 'h-5 animate-[stretch_0.5s_infinite_alternate_0.1s]' : 'h-1'}`}></div>
+                <div className={`w-1 bg-slate-400 rounded-full transition-all duration-300 ${isSpeaking || isRecording ? 'h-2.5 animate-[stretch_0.5s_infinite_alternate_0.2s]' : 'h-1'}`}></div>
               </div>
-              <span className="text-[11px] font-bold text-slate-700 uppercase tracking-widest">
+              <span className="text-[10px] sm:text-[11px] font-bold text-slate-700 uppercase tracking-wider truncate">
                 {closingStatus || (isSpeaking ? 'Interviewer Speaking' : isRecording ? 'Listening...' : 'Processing')}
               </span>
             </div>
@@ -564,25 +566,26 @@ export default function InterviewRoom() {
           <button
             onClick={toggleRecording}
             disabled={loading || isConverting || isSpeaking || Boolean(closingStatus)}
-            className={`group relative w-20 h-20 md:w-24 md:h-24 rounded-full flex items-center justify-center transition-all duration-300 ease-emil-out ${isRecording
-              ? 'bg-red-500 shadow-[0_0_50px_rgba(239,68,68,0.5)] scale-110'
-              : 'bg-slate-900 hover:bg-slate-800 shadow-[0_10px_30px_-5px_rgba(0,0,0,0.5)] hover:shadow-[0_15px_40px_-5px_rgba(0,0,0,0.6)] hover:-translate-y-1 active:scale-[0.97]'
+            aria-label={isRecording ? 'Stop recording answer' : 'Start recording answer'}
+            className={`group relative w-16 h-16 sm:w-20 sm:h-20 md:w-22 md:h-22 rounded-full flex items-center justify-center transition-all duration-300 ease-emil-out ${isRecording
+              ? 'bg-red-500 shadow-[0_0_40px_rgba(239,68,68,0.5)] scale-105'
+              : 'bg-slate-900 hover:bg-slate-800 shadow-[0_8px_25px_-5px_rgba(0,0,0,0.4)] hover:shadow-[0_12px_35px_-5px_rgba(0,0,0,0.5)] hover:-translate-y-0.5 active:scale-[0.97]'
               } disabled:opacity-40 disabled:scale-95 disabled:hover:translate-y-0 disabled:cursor-not-allowed`}
           >
             {isRecording ? (
-              <div className="w-8 h-8 md:w-10 md:h-10 bg-white rounded-lg shadow-inner scale-in-center"></div>
+              <div className="w-6 h-6 sm:w-8 sm:h-8 md:w-9 md:h-9 bg-white rounded-lg shadow-inner scale-in-center"></div>
             ) : (
-              <svg className="w-10 h-10 md:w-12 md:h-12 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-8 h-8 sm:w-10 sm:h-10 md:w-11 md:h-11 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
               </svg>
             )}
             {/* Pulsing ring when active */}
             {(isRecording || isSpeaking) && (
-              <div className="absolute inset-0 rounded-full border-4 border-white/30 animate-ping opacity-30"></div>
+              <div className="absolute inset-0 rounded-full border-4 border-white/30 animate-ping opacity-30 pointer-events-none"></div>
             )}
           </button>
 
-          <div className="mt-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+          <div className="mt-2 sm:mt-3 text-[10px] sm:text-[11px] font-bold text-slate-500 uppercase tracking-wider text-center px-2">
             {closingStatus ? closingStatus : isSpeaking ? 'Please wait...' : isRecording ? 'Click to finish' : 'Tap to start speaking'}
           </div>
         </div>

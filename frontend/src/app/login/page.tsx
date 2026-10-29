@@ -41,7 +41,7 @@ export default function LoginPage() {
       <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] rounded-full bg-[#cdebe7]/40 blur-[120px] pointer-events-none z-0" />
 
       {/* Navbar */}
-      <nav className="relative z-20 flex items-center justify-between px-8 py-5 max-w-7xl mx-auto w-full">
+      <nav className="relative z-20 flex items-center justify-between px-4 sm:px-8 py-3.5 sm:py-5 max-w-7xl mx-auto w-full">
         <Link href="/" className="flex items-center gap-2 group">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-[#72abad] to-[#4a8394] flex items-center justify-center shadow-[0_0_15px_rgba(114,171,173,0.4)]">
             <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 100 140" xmlns="http://www.w3.org/2000/svg">
@@ -51,11 +51,11 @@ export default function LoginPage() {
               <path d="M48 58 L46 80 L50 90 L54 80 L52 58 Z" fill="rgba(74,131,148,0.6)" />
             </svg>
           </div>
-          <span className="text-xl font-bold tracking-tight text-slate-900 group-hover:text-[#4a8394] transition-colors">Intervue</span>
+          <span className="text-lg sm:text-xl font-bold tracking-tight text-slate-900 group-hover:text-[#4a8394] transition-colors">Intervue</span>
         </Link>
         <Link
           href="/"
-          className="flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-slate-800 transition-colors"
+          className="flex items-center gap-1.5 text-xs sm:text-sm font-medium text-slate-500 hover:text-slate-800 transition-colors"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
           Back to home
@@ -63,27 +63,27 @@ export default function LoginPage() {
       </nav>
 
       {/* Login Card */}
-      <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 py-10">
+      <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 sm:px-6 py-6 sm:py-10">
         <div className="w-full max-w-md">
           {/* Header */}
-          <div className="text-center mb-8">
+          <div className="text-center mb-6 sm:mb-8">
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-[#72abad]/30 bg-[#cdebe7]/50 text-xs font-bold text-[#4a8394] uppercase tracking-widest mb-3">
               <span className="w-1.5 h-1.5 rounded-full bg-[#4a8394] animate-pulse" />
               Welcome Back
             </div>
-            <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Sign in to your account</h1>
-            <p className="text-sm text-slate-500 mt-2">Access your saved interviews, track progress, and practice.</p>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Sign in to your account</h1>
+            <p className="text-xs sm:text-sm text-slate-500 mt-2 px-2">Access your saved interviews, track progress, and practice.</p>
           </div>
 
-          <div className="bg-white border border-slate-200/80 rounded-3xl p-8 shadow-[0_20px_50px_rgba(74,131,148,0.08)]">
+          <div className="bg-white border border-slate-200/80 rounded-2xl sm:rounded-3xl p-5 sm:p-8 shadow-[0_20px_50px_rgba(74,131,148,0.08)]">
             {error && (
-              <div className="mb-6 p-4 rounded-2xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-2">
+              <div className="mb-5 sm:mb-6 p-3.5 sm:p-4 rounded-xl sm:rounded-2xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-2 break-words">
                 <svg className="w-4 h-4 shrink-0 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                 <span>{error}</span>
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-5">
+            <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
               <div>
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2" htmlFor="email">
                   Email Address
@@ -95,7 +95,7 @@ export default function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Enter your email address"
-                  className="w-full px-4 py-3 rounded-xl border border-slate-200 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-[#72abad] focus:border-transparent transition-all bg-slate-50/50 hover:bg-white"
+                  className="w-full px-4 py-3 rounded-xl border border-slate-200 text-slate-800 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-[#72abad] focus:border-transparent transition-all bg-slate-50/50 hover:bg-white min-h-[44px]"
                 />
               </div>
 
@@ -112,14 +112,14 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full px-4 py-3 rounded-xl border border-slate-200 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-[#72abad] focus:border-transparent transition-all bg-slate-50/50 hover:bg-white"
+                  className="w-full px-4 py-3 rounded-xl border border-slate-200 text-slate-800 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-[#72abad] focus:border-transparent transition-all bg-slate-50/50 hover:bg-white min-h-[44px]"
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-3.5 rounded-xl font-bold text-white text-sm bg-[#4a8394] hover:bg-[#3d6c7a] shadow-[0_4px_14px_rgba(74,131,148,0.35)] transition-all active:scale-[0.98] duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="w-full py-3.5 rounded-xl font-bold text-white text-sm bg-[#4a8394] hover:bg-[#3d6c7a] shadow-[0_4px_14px_rgba(74,131,148,0.35)] transition-all active:scale-[0.98] duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 min-h-[44px]"
               >
                 {loading ? (
                   <>
@@ -135,7 +135,7 @@ export default function LoginPage() {
               </button>
             </form>
 
-            <div className="mt-6 pt-6 border-t border-slate-100 text-center">
+            <div className="mt-5 sm:mt-6 pt-5 sm:pt-6 border-t border-slate-100 text-center">
               <p className="text-xs text-slate-500">
                 Don&apos;t have an account yet?{' '}
                 <Link href="/register" className="font-bold text-[#4a8394] hover:text-[#3d6c7a] underline transition-colors">

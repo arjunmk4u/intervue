@@ -192,17 +192,17 @@ function AnalyticsDashboardContent() {
       <div className="absolute top-[-10%] left-[-10%] w-[700px] h-[700px] rounded-full bg-[#72abad]/15 blur-[130px] pointer-events-none z-0"></div>
       <div className="absolute top-[30%] right-[-10%] w-[500px] h-[500px] rounded-full bg-[#cdebe7]/50 blur-[120px] pointer-events-none z-0"></div>
 
-      <div className="relative z-10 mx-auto max-w-7xl px-6 py-6 md:px-12 md:py-8">
+      <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 md:px-8 lg:px-12 py-5 sm:py-8">
         {/* Navigation Bar */}
-        <div className="flex items-center justify-between mb-6">
-          <Link href="/dashboard" className="inline-flex items-center gap-1.5 text-xs font-bold text-[#4a8394] hover:text-[#3d6c7a] transition-colors">
+        <div className="flex items-center justify-between mb-5 sm:mb-6">
+          <Link href="/dashboard" className="inline-flex items-center gap-1.5 text-xs font-bold text-[#4a8394] hover:text-[#3d6c7a] transition-colors min-h-[36px]">
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
             Back to Dashboard
           </Link>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <Link
               href="/setup"
-              className="rounded-full bg-[#4a8394] px-4 py-2 text-xs font-bold text-white hover:bg-[#3d6c7a] transition-all shadow-[0_4px_12px_rgba(74,131,148,0.3)]"
+              className="rounded-full bg-[#4a8394] px-3.5 sm:px-4 py-2 text-xs font-bold text-white hover:bg-[#3d6c7a] transition-all shadow-[0_4px_12px_rgba(74,131,148,0.3)] min-h-[36px] flex items-center justify-center whitespace-nowrap"
             >
               + Practice Again
             </Link>
@@ -210,32 +210,32 @@ function AnalyticsDashboardContent() {
         </div>
 
         {/* Header */}
-        <header className="rounded-[2rem] border border-slate-200 bg-white/75 px-6 py-5 shadow-[0_20px_60px_rgba(74,131,148,0.08)] backdrop-blur-xl transition-all duration-300 ease-emil-out hover:shadow-[0_20px_60px_rgba(74,131,148,0.12)]">
-          <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
+        <header className="rounded-2xl sm:rounded-[2rem] border border-slate-200 bg-white/75 p-4 sm:p-6 md:p-8 shadow-[0_20px_60px_rgba(74,131,148,0.08)] backdrop-blur-xl transition-all duration-300 ease-emil-out hover:shadow-[0_20px_60px_rgba(74,131,148,0.12)]">
+          <div className="flex flex-col gap-4 sm:gap-5 md:flex-row md:items-start md:justify-between">
             <div>
-              <div className="inline-flex items-center gap-2 rounded-full border border-[#72abad]/30 bg-[#cdebe7]/50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.25em] text-[#4a8394]">
+              <div className="inline-flex items-center gap-1.5 sm:gap-2 rounded-full border border-[#72abad]/30 bg-[#cdebe7]/50 px-2.5 sm:px-3 py-1 text-[10px] sm:text-[11px] font-semibold uppercase tracking-[0.2em] sm:tracking-[0.25em] text-[#4a8394]">
                 <span className="h-1.5 w-1.5 rounded-full bg-[#4a8394] animate-pulse"></span>
                 Evidence-Based Report
               </div>
-              <h1 className="mt-4 text-3xl font-extrabold tracking-tight text-slate-900 md:text-5xl">
+              <h1 className="mt-3 sm:mt-4 text-2xl sm:text-3xl md:text-5xl font-extrabold tracking-tight text-slate-900 break-words">
                 Interview performance evaluation
               </h1>
-              <p className="mt-3 max-w-3xl text-sm leading-relaxed text-slate-500 md:text-base">
+              <p className="mt-2 sm:mt-3 max-w-3xl text-xs sm:text-sm md:text-base leading-relaxed text-slate-500">
                 Every score and recommendation below is derived from your spoken interview answers saved in this session.
               </p>
             </div>
 
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-wrap gap-2.5 sm:gap-3 shrink-0">
               <Link
                 href="/dashboard"
-                className="rounded-full border border-slate-300 bg-white px-5 py-2.5 text-sm font-bold text-slate-700 transition-all active:scale-[0.97] hover:scale-[1.02] duration-200 ease-emil-out hover:bg-slate-50 hover:border-slate-400 shadow-sm"
+                className="w-full sm:w-auto text-center rounded-full border border-slate-300 bg-white px-4 sm:px-5 py-2 sm:py-2.5 text-xs sm:text-sm font-bold text-slate-700 transition-all active:scale-[0.97] hover:scale-[1.02] duration-200 ease-emil-out hover:bg-slate-50 hover:border-slate-400 shadow-sm min-h-[38px] flex items-center justify-center"
               >
                 All Interviews
               </Link>
             </div>
           </div>
 
-          <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3">
+          <div className="mt-5 sm:mt-6 grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
             <SummaryChip label="Answers Analyzed" value={String(report.interview_count)} />
             <SummaryChip label="Phases Covered" value={completedPhases.join(', ') || 'none'} />
             <SummaryChip label="Overall Score" value={`${report.overall_score}/100`} />
@@ -244,33 +244,33 @@ function AnalyticsDashboardContent() {
 
         {/* Longitudinal Comparison Section */}
         {comparison && (
-          <section className="mt-8 rounded-[2rem] border border-slate-200/90 bg-white/90 p-6 shadow-sm backdrop-blur-xl">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-7 h-7 rounded-lg bg-[#cdebe7] text-[#4a8394] flex items-center justify-center">
+          <section className="mt-6 sm:mt-8 rounded-2xl sm:rounded-[2rem] border border-slate-200/90 bg-white/90 p-4 sm:p-6 shadow-sm backdrop-blur-xl">
+            <div className="flex items-center gap-2 mb-3 sm:mb-4">
+              <div className="w-7 h-7 rounded-lg bg-[#cdebe7] text-[#4a8394] flex items-center justify-center shrink-0">
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
               </div>
-              <h2 className="text-base font-bold text-slate-900">Longitudinal Performance Tracking</h2>
+              <h2 className="text-sm sm:text-base font-bold text-slate-900">Longitudinal Performance Tracking</h2>
             </div>
 
             {comparison.hasPrevious && comparison.previous && comparison.delta ? (
-              <div className="space-y-4">
-                <div className="p-4 rounded-2xl bg-gradient-to-r from-[#cdebe7]/30 to-[#f4f8fb] border border-[#72abad]/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="space-y-3 sm:space-y-4">
+                <div className="p-3.5 sm:p-4 rounded-xl sm:rounded-2xl bg-gradient-to-r from-[#cdebe7]/30 to-[#f4f8fb] border border-[#72abad]/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
                   <div>
-                    <p className="text-xs font-semibold text-slate-500">
+                    <p className="text-xs font-semibold text-slate-500 leading-normal">
                       Compared against previous interview on{' '}
                       <strong className="text-slate-800">
                         {new Date(comparison.previous.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                       </strong>{' '}
                       ({comparison.previous.domain})
                     </p>
-                    <p className="text-sm font-bold text-slate-900 mt-1">
+                    <p className="text-xs sm:text-sm font-bold text-slate-900 mt-1">
                       Current Score: {comparison.current?.overall_score || report.overall_score}/100 • Previous: {comparison.previous.overall_score}/100
                     </p>
                   </div>
 
                   <div className="flex items-center gap-2 shrink-0">
-                    <span className="text-xs font-bold uppercase text-slate-400">Score Delta:</span>
-                    <span className={`px-3 py-1 rounded-full text-xs font-extrabold ${
+                    <span className="text-[10px] sm:text-xs font-bold uppercase text-slate-400">Score Delta:</span>
+                    <span className={`px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full text-xs font-extrabold ${
                       comparison.delta.overall_score > 0
                         ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
                         : comparison.delta.overall_score < 0
@@ -283,11 +283,11 @@ function AnalyticsDashboardContent() {
                 </div>
 
                 {/* Sub-Metrics Delta Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div className="rounded-xl border border-slate-200/80 bg-white p-4">
-                    <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Technical Trajectory</p>
-                    <div className="flex items-center justify-between mt-2">
-                      <span className="text-base font-bold text-slate-800">Technical Avg</span>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3">
+                  <div className="rounded-xl border border-slate-200/80 bg-white p-3.5 sm:p-4">
+                    <p className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-400">Technical Trajectory</p>
+                    <div className="flex items-center justify-between mt-1.5 sm:mt-2">
+                      <span className="text-sm sm:text-base font-bold text-slate-800">Technical Avg</span>
                       <span className={`text-xs font-extrabold px-2 py-0.5 rounded-md ${
                         comparison.delta.technical > 0 ? 'text-emerald-700 bg-emerald-50' : comparison.delta.technical < 0 ? 'text-rose-700 bg-rose-50' : 'text-slate-600 bg-slate-100'
                       }`}>
@@ -296,10 +296,10 @@ function AnalyticsDashboardContent() {
                     </div>
                   </div>
 
-                  <div className="rounded-xl border border-slate-200/80 bg-white p-4">
-                    <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Behavioral Trajectory</p>
-                    <div className="flex items-center justify-between mt-2">
-                      <span className="text-base font-bold text-slate-800">Behavioral Avg</span>
+                  <div className="rounded-xl border border-slate-200/80 bg-white p-3.5 sm:p-4">
+                    <p className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-400">Behavioral Trajectory</p>
+                    <div className="flex items-center justify-between mt-1.5 sm:mt-2">
+                      <span className="text-sm sm:text-base font-bold text-slate-800">Behavioral Avg</span>
                       <span className={`text-xs font-extrabold px-2 py-0.5 rounded-md ${
                         comparison.delta.behavioral > 0 ? 'text-emerald-700 bg-emerald-50' : comparison.delta.behavioral < 0 ? 'text-rose-700 bg-rose-50' : 'text-slate-600 bg-slate-100'
                       }`}>
@@ -308,10 +308,10 @@ function AnalyticsDashboardContent() {
                     </div>
                   </div>
 
-                  <div className="rounded-xl border border-slate-200/80 bg-white p-4">
-                    <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Speech & Delivery</p>
-                    <div className="flex items-center justify-between mt-2">
-                      <span className="text-base font-bold text-slate-800">Speech Heuristic</span>
+                  <div className="rounded-xl border border-slate-200/80 bg-white p-3.5 sm:p-4">
+                    <p className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-400">Speech & Delivery</p>
+                    <div className="flex items-center justify-between mt-1.5 sm:mt-2">
+                      <span className="text-sm sm:text-base font-bold text-slate-800">Speech Heuristic</span>
                       <span className={`text-xs font-extrabold px-2 py-0.5 rounded-md ${
                         comparison.delta.speech !== null && comparison.delta.speech > 0
                           ? 'text-emerald-700 bg-emerald-50'
@@ -326,13 +326,13 @@ function AnalyticsDashboardContent() {
                 </div>
               </div>
             ) : (
-              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center gap-3">
+              <div className="p-3.5 sm:p-4 rounded-xl sm:rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center gap-3">
                 <div className="w-8 h-8 rounded-full bg-[#cdebe7] text-[#4a8394] flex items-center justify-center shrink-0">
                   🌱
                 </div>
                 <div>
                   <p className="text-xs font-bold text-slate-900">First Mock Interview</p>
-                  <p className="text-xs text-slate-500 mt-0.5">
+                  <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
                     This is your first completed interview. Complete another practice session to track your longitudinal score deltas and progress over time.
                   </p>
                 </div>
@@ -342,7 +342,7 @@ function AnalyticsDashboardContent() {
         )}
 
         {/* Top 4 Metric Highlights */}
-        <section className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <section className="mt-6 sm:mt-8 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
           <StatCard label="Clarity" value={metrics.clarity} suffix="/ 10" tone={getMetricTone(metrics.clarity)} toneClass="indigo" accent />
           <StatCard label="Depth" value={metrics.depth} suffix="/ 10" tone={getMetricTone(metrics.depth)} toneClass="emerald" />
           <StatCard label="Relevance" value={metrics.relevance} suffix="/ 10" tone={getMetricTone(metrics.relevance)} toneClass="cyan" />
@@ -350,13 +350,13 @@ function AnalyticsDashboardContent() {
         </section>
 
         {/* Main 2-Column Grid */}
-        <section className="mt-8 grid grid-cols-1 gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-          <div className="space-y-6">
+        <section className="mt-6 sm:mt-8 grid grid-cols-1 gap-5 sm:gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+          <div className="space-y-5 sm:space-y-6">
             <Panel
               eyebrow="Technical Signals"
               title="Measured answer quality"
               body={
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   {Object.entries(metrics).map(([key, value]) => (
                     <MetricMeter key={key} label={key.replace('_', ' ')} value={value} />
                   ))}
@@ -364,7 +364,7 @@ function AnalyticsDashboardContent() {
               }
             />
 
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-2">
               <InsightCard title="Repeated strengths" label="Strengths" tone="emerald" items={strengths} emptyMessage="No repeated strengths were extracted from the analyzed answers." />
               <InsightCard title="Repeated weaknesses" label="Weaknesses" tone="rose" items={weaknesses} emptyMessage="No repeated weaknesses were extracted from the analyzed answers." />
             </div>
@@ -375,39 +375,39 @@ function AnalyticsDashboardContent() {
               body={
                 <div className="space-y-4">
                   {questionReviews.length > 0 ? questionReviews.map((review, index) => (
-                    <div key={`${review.phase}-${index}`} className="group rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md transition-all duration-300 ease-emil-out">
-                      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                    <div key={`${review.phase}-${index}`} className="group rounded-2xl sm:rounded-[1.5rem] border border-slate-200 bg-white p-4 sm:p-5 shadow-sm hover:shadow-md transition-all duration-300 ease-emil-out">
+                      <div className="flex flex-col gap-2.5 sm:gap-3 sm:flex-row sm:items-start sm:justify-between">
                         <div>
-                          <div className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.22em] text-slate-500">
+                          <div className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-2.5 py-0.5 text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">
                             {review.phase}
                           </div>
-                          <h3 className="mt-3 text-base font-bold text-slate-900">{review.question}</h3>
+                          <h3 className="mt-2 sm:mt-3 text-sm sm:text-base font-bold text-slate-900 break-words">{review.question}</h3>
                         </div>
-                        <div className="grid grid-cols-2 gap-2 text-right text-sm font-medium text-slate-500">
-                          <span>clarity {review.scores.clarity}</span>
-                          <span>depth {review.scores.depth}</span>
-                          <span>relevance {review.scores.relevance}</span>
-                          <span>confidence {review.scores.confidence}</span>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 sm:text-right gap-1.5 sm:gap-2 text-xs font-medium text-slate-500 shrink-0">
+                          <span className="bg-slate-50 sm:bg-transparent px-2 py-1 sm:p-0 rounded">clarity {review.scores.clarity}</span>
+                          <span className="bg-slate-50 sm:bg-transparent px-2 py-1 sm:p-0 rounded">depth {review.scores.depth}</span>
+                          <span className="bg-slate-50 sm:bg-transparent px-2 py-1 sm:p-0 rounded">relevance {review.scores.relevance}</span>
+                          <span className="bg-slate-50 sm:bg-transparent px-2 py-1 sm:p-0 rounded">confidence {review.scores.confidence}</span>
                         </div>
                       </div>
 
-                      <div className="mt-4 rounded-[1.25rem] border border-slate-100 bg-slate-50 p-4">
-                        <p className="text-xs font-bold uppercase tracking-[0.22em] text-slate-400">Your Answer</p>
-                        <p className="mt-2 text-sm leading-relaxed text-slate-700">{review.answerPreview}</p>
+                      <div className="mt-3.5 sm:mt-4 rounded-xl sm:rounded-[1.25rem] border border-slate-100 bg-slate-50 p-3.5 sm:p-4">
+                        <p className="text-[10px] sm:text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Your Answer</p>
+                        <p className="mt-1.5 sm:mt-2 text-xs sm:text-sm leading-relaxed text-slate-700 break-words">{review.answerPreview}</p>
                       </div>
 
-                      <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
+                      <div className="mt-3.5 sm:mt-4 grid grid-cols-1 gap-2.5 sm:gap-3 md:grid-cols-2">
                         <ReviewList title="Worked well" items={review.strengths} emptyMessage="No positive evidence stored for this answer." />
                         <ReviewList title="Needs work" items={review.weaknesses} emptyMessage="No weaknesses stored for this answer." />
                       </div>
 
-                      <div className="mt-4 rounded-[1.25rem] border border-sky-100 bg-sky-50/70 p-4">
-                        <p className="text-xs font-bold uppercase tracking-[0.22em] text-sky-600">Coaching Tip</p>
-                        <p className="mt-2 text-sm leading-relaxed text-sky-900">{review.tip}</p>
+                      <div className="mt-3.5 sm:mt-4 rounded-xl sm:rounded-[1.25rem] border border-sky-100 bg-sky-50/70 p-3.5 sm:p-4">
+                        <p className="text-[10px] sm:text-xs font-bold uppercase tracking-[0.2em] text-sky-600">Coaching Tip</p>
+                        <p className="mt-1.5 sm:mt-2 text-xs sm:text-sm leading-relaxed text-sky-900 break-words">{review.tip}</p>
                       </div>
                     </div>
                   )) : (
-                    <p className="text-sm text-slate-500">No question reviews recorded yet.</p>
+                    <p className="text-xs sm:text-sm text-slate-500">No question reviews recorded yet.</p>
                   )}
                 </div>
               }
@@ -415,30 +415,30 @@ function AnalyticsDashboardContent() {
           </div>
 
           {/* Right Sidebar */}
-          <div className="space-y-6">
+          <div className="space-y-5 sm:space-y-6">
             <Panel
               eyebrow="Targeted Coaching"
               title="Next actions to improve"
               body={
-                <div className="space-y-4">
+                <div className="space-y-3.5 sm:space-y-4">
                   {recommendations.length > 0 ? recommendations.map((item, index) => (
-                    <div key={`${item.title}-${index}`} className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm transition-all hover:shadow-md duration-300 ease-emil-out">
-                      <div className="flex items-center justify-between gap-3">
-                        <h4 className="text-base font-bold text-slate-900">{item.title}</h4>
-                        <span className={`rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wider ${
+                    <div key={`${item.title}-${index}`} className="rounded-xl sm:rounded-[1.5rem] border border-slate-200 bg-white p-4 sm:p-5 shadow-sm transition-all hover:shadow-md duration-300 ease-emil-out">
+                      <div className="flex items-center justify-between gap-2.5">
+                        <h4 className="text-sm sm:text-base font-bold text-slate-900 break-words">{item.title}</h4>
+                        <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-[10px] sm:text-xs font-bold uppercase tracking-wider ${
                           item.priority === 'high' ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-700'
                         }`}>
-                          {item.priority} priority
+                          {item.priority}
                         </span>
                       </div>
-                      <p className="mt-3 text-sm leading-relaxed text-slate-600">{item.reason}</p>
-                      <div className="mt-4 rounded-[1.25rem] bg-slate-50 p-4 border border-slate-100">
-                        <p className="text-xs font-bold uppercase tracking-[0.22em] text-slate-400">Action</p>
-                        <p className="mt-1 text-sm font-semibold text-slate-800">{item.action}</p>
+                      <p className="mt-2 sm:mt-3 text-xs sm:text-sm leading-relaxed text-slate-600 break-words">{item.reason}</p>
+                      <div className="mt-3 sm:mt-4 rounded-lg sm:rounded-[1.25rem] bg-slate-50 p-3 sm:p-4 border border-slate-100">
+                        <p className="text-[10px] sm:text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Action</p>
+                        <p className="mt-1 text-xs sm:text-sm font-semibold text-slate-800 break-words">{item.action}</p>
                       </div>
                     </div>
                   )) : (
-                    <p className="text-sm text-slate-500">No specific action items needed based on the current scoring.</p>
+                    <p className="text-xs sm:text-sm text-slate-500">No specific action items needed based on the current scoring.</p>
                   )}
                 </div>
               }
@@ -448,11 +448,11 @@ function AnalyticsDashboardContent() {
               eyebrow="Behavioral Signals"
               title="Workplace heuristics"
               body={
-                <div className="space-y-3">
+                <div className="space-y-2.5 sm:space-y-3">
                   {Object.entries(behavioral).map(([key, value]) => (
-                    <div key={key} className="flex items-center justify-between rounded-[1.25rem] border border-slate-100 bg-white p-4 shadow-sm">
-                      <span className="text-sm font-semibold capitalize text-slate-700">{key.replace('_', ' ')}</span>
-                      <span className="text-base font-bold text-slate-900">{value} / 10</span>
+                    <div key={key} className="flex items-center justify-between rounded-xl sm:rounded-[1.25rem] border border-slate-100 bg-white p-3 sm:p-4 shadow-sm">
+                      <span className="text-xs sm:text-sm font-semibold capitalize text-slate-700">{key.replace('_', ' ')}</span>
+                      <span className="text-sm sm:text-base font-bold text-slate-900">{value} / 10</span>
                     </div>
                   ))}
                 </div>
@@ -463,7 +463,7 @@ function AnalyticsDashboardContent() {
               eyebrow="Speech & Pace"
               title="Delivery heuristics"
               body={
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-2 sm:gap-3">
                   <SpeechStat label="Answer Latency" value={formatOptionalMetric(speech.latency, 's')} />
                   <SpeechStat label="Speaking Pace" value={formatOptionalMetric(speech.speechRate, ' wpm')} />
                   <SpeechStat label="Filler Words" value={String(speech.fillerWordCount)} />
@@ -476,21 +476,21 @@ function AnalyticsDashboardContent() {
               eyebrow="Evidence Summaries"
               title="Signals logged"
               body={
-                <div className="space-y-4">
-                  <div className="rounded-[1.25rem] border border-slate-100 bg-white p-4">
-                    <p className="text-xs font-bold uppercase tracking-[0.22em] text-slate-400">Technical Highlights</p>
-                    <div className="mt-3 space-y-2">
+                <div className="space-y-3 sm:space-y-4">
+                  <div className="rounded-xl sm:rounded-[1.25rem] border border-slate-100 bg-white p-3.5 sm:p-4">
+                    <p className="text-[10px] sm:text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Technical Highlights</p>
+                    <div className="mt-2.5 sm:mt-3 space-y-2">
                       {evidenceSummary.technical.length > 0 ? evidenceSummary.technical.map((item, index) => (
-                        <p key={index} className="text-xs leading-relaxed text-slate-600">• {item}</p>
+                        <p key={index} className="text-xs leading-relaxed text-slate-600 break-words">• {item}</p>
                       )) : <p className="text-xs text-slate-400">No explicit technical highlights were summarized.</p>}
                     </div>
                   </div>
 
-                  <div className="rounded-[1.25rem] border border-slate-100 bg-white p-4">
-                    <p className="text-xs font-bold uppercase tracking-[0.22em] text-slate-400">Speaking Highlights</p>
-                    <div className="mt-3 space-y-2">
+                  <div className="rounded-xl sm:rounded-[1.25rem] border border-slate-100 bg-white p-3.5 sm:p-4">
+                    <p className="text-[10px] sm:text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Speaking Highlights</p>
+                    <div className="mt-2.5 sm:mt-3 space-y-2">
                       {evidenceSummary.speaking.length > 0 ? evidenceSummary.speaking.map((item, index) => (
-                        <p key={index} className="text-xs leading-relaxed text-slate-600">• {item}</p>
+                        <p key={index} className="text-xs leading-relaxed text-slate-600 break-words">• {item}</p>
                       )) : <p className="text-xs text-slate-400">No explicit speaking highlights were summarized.</p>}
                     </div>
                   </div>
@@ -517,9 +517,9 @@ function AnalyticsLoadingState() {
 
 function SummaryChip({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-[1.5rem] border border-slate-200 bg-white/80 p-4 shadow-sm">
-      <p className="text-xs font-bold uppercase tracking-[0.22em] text-slate-400">{label}</p>
-      <p className="mt-2 text-lg font-extrabold text-slate-900">{value}</p>
+    <div className="rounded-xl sm:rounded-[1.5rem] border border-slate-200 bg-white/80 p-3 sm:p-4 shadow-sm">
+      <p className="text-[10px] sm:text-xs font-bold uppercase tracking-[0.2em] text-slate-400">{label}</p>
+      <p className="mt-1.5 sm:mt-2 text-base sm:text-lg font-extrabold text-slate-900 truncate">{value}</p>
     </div>
   );
 }
@@ -547,15 +547,15 @@ function StatCard({
   }[toneClass];
 
   return (
-    <div className={`rounded-[2rem] border p-6 transition-all duration-300 ease-emil-out hover:-translate-y-1 hover:shadow-md ${
+    <div className={`rounded-2xl sm:rounded-[2rem] border p-4 sm:p-6 transition-all duration-300 ease-emil-out hover:-translate-y-1 hover:shadow-md ${
       accent ? 'border-[#72abad]/40 bg-white/95 shadow-[0_10px_30px_rgba(114,171,173,0.1)]' : 'border-slate-200 bg-white/80 shadow-sm'
     }`}>
-      <div className="flex items-center justify-between gap-3">
-        <span className="text-xs font-bold uppercase tracking-[0.22em] text-slate-400">{label}</span>
-        <span className={`rounded-full border px-2.5 py-0.5 text-[11px] font-bold ${toneBg}`}>{tone}</span>
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[10px] sm:text-xs font-bold uppercase tracking-[0.2em] text-slate-400 truncate">{label}</span>
+        <span className={`shrink-0 rounded-full border px-2 sm:px-2.5 py-0.5 text-[10px] sm:text-[11px] font-bold ${toneBg}`}>{tone}</span>
       </div>
-      <p className="mt-4 text-3xl font-extrabold text-slate-900 md:text-4xl">
-        {value} <span className="text-base font-semibold text-slate-400">{suffix}</span>
+      <p className="mt-3 sm:mt-4 text-2xl sm:text-3xl md:text-4xl font-extrabold text-slate-900">
+        {value} <span className="text-sm sm:text-base font-semibold text-slate-400">{suffix}</span>
       </p>
     </div>
   );
@@ -563,22 +563,22 @@ function StatCard({
 
 function Panel({ eyebrow, title, body }: { eyebrow: string; title: string; body: React.ReactNode }) {
   return (
-    <section className="rounded-[2rem] border border-slate-200 bg-white/75 p-6 shadow-sm backdrop-blur-xl transition-all duration-300 ease-emil-out hover:shadow-md">
-      <p className="text-xs font-bold uppercase tracking-[0.25em] text-[#4a8394]">{eyebrow}</p>
-      <h3 className="mt-1 text-xl font-extrabold text-slate-900">{title}</h3>
-      <div className="mt-6">{body}</div>
+    <section className="rounded-2xl sm:rounded-[2rem] border border-slate-200 bg-white/75 p-4 sm:p-6 shadow-sm backdrop-blur-xl transition-all duration-300 ease-emil-out hover:shadow-md">
+      <p className="text-[10px] sm:text-xs font-bold uppercase tracking-[0.2em] text-[#4a8394]">{eyebrow}</p>
+      <h3 className="mt-1 text-lg sm:text-xl font-extrabold text-slate-900 break-words">{title}</h3>
+      <div className="mt-4 sm:mt-6">{body}</div>
     </section>
   );
 }
 
 function MetricMeter({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-sm transition-all hover:shadow-md duration-300 ease-emil-out">
-      <div className="flex items-center justify-between gap-3">
-        <span className="text-sm font-semibold capitalize text-slate-600">{label}</span>
-        <span className="text-lg font-bold text-slate-900">{value}</span>
+    <div className="rounded-xl sm:rounded-[1.5rem] border border-slate-200 bg-white p-3.5 sm:p-4 shadow-sm transition-all hover:shadow-md duration-300 ease-emil-out">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-xs sm:text-sm font-semibold capitalize text-slate-600 truncate">{label}</span>
+        <span className="text-base sm:text-lg font-bold text-slate-900">{value}</span>
       </div>
-      <div className="mt-4 h-2 rounded-full bg-slate-100">
+      <div className="mt-3 sm:mt-4 h-2 rounded-full bg-slate-100">
         <div className="h-2 rounded-full bg-gradient-to-r from-[#72abad] to-[#4a8394]" style={{ width: `${Math.max(8, Math.min(100, value * 10))}%` }} />
       </div>
     </div>
@@ -612,20 +612,20 @@ function InsightCard({
   }[tone];
 
   return (
-    <div className="group rounded-[2rem] border border-slate-200 bg-white/90 p-6 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 ease-emil-out backdrop-blur-xl">
-      <div className="flex items-center gap-3">
-        <div className={`flex h-9 w-9 items-center justify-center rounded-full ${toneStyles.badge}`}></div>
+    <div className="group rounded-2xl sm:rounded-[2rem] border border-slate-200 bg-white/90 p-4 sm:p-6 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 ease-emil-out backdrop-blur-xl">
+      <div className="flex items-center gap-2.5 sm:gap-3">
+        <div className={`flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-full shrink-0 ${toneStyles.badge}`}></div>
         <div>
-          <p className={`text-xs font-bold uppercase tracking-[0.25em] ${toneStyles.label}`}>{label}</p>
-          <h3 className="text-lg font-extrabold text-slate-900">{title}</h3>
+          <p className={`text-[10px] sm:text-xs font-bold uppercase tracking-[0.2em] ${toneStyles.label}`}>{label}</p>
+          <h3 className="text-base sm:text-lg font-extrabold text-slate-900 break-words">{title}</h3>
         </div>
       </div>
-      <div className="mt-6 space-y-3">
+      <div className="mt-4 sm:mt-6 space-y-2.5 sm:space-y-3">
         {items?.length > 0 ? items.map((item, i) => (
-          <div key={i} className={`rounded-[1.25rem] border p-4 text-sm leading-relaxed text-slate-700 ${toneStyles.card}`}>
+          <div key={i} className={`rounded-xl sm:rounded-[1.25rem] border p-3.5 sm:p-4 text-xs sm:text-sm leading-relaxed text-slate-700 break-words ${toneStyles.card}`}>
             {item}
           </div>
-        )) : <p className="text-sm text-slate-500">{emptyMessage}</p>}
+        )) : <p className="text-xs sm:text-sm text-slate-500">{emptyMessage}</p>}
       </div>
     </div>
   );
@@ -633,12 +633,12 @@ function InsightCard({
 
 function ReviewList({ title, items, emptyMessage }: { title: string; items: string[]; emptyMessage: string }) {
   return (
-    <div className="rounded-[1.25rem] border border-slate-100 bg-white p-4 shadow-sm hover:shadow-md transition-all duration-300 ease-emil-out">
-      <p className="text-xs font-bold uppercase tracking-[0.22em] text-slate-400">{title}</p>
-      <div className="mt-3 space-y-2">
+    <div className="rounded-xl sm:rounded-[1.25rem] border border-slate-100 bg-white p-3.5 sm:p-4 shadow-sm hover:shadow-md transition-all duration-300 ease-emil-out">
+      <p className="text-[10px] sm:text-xs font-bold uppercase tracking-[0.2em] text-slate-400">{title}</p>
+      <div className="mt-2.5 sm:mt-3 space-y-2">
         {items.length > 0 ? items.map((item, index) => (
-          <p key={index} className="text-sm leading-relaxed text-slate-700">{item}</p>
-        )) : <p className="text-sm text-slate-500">{emptyMessage}</p>}
+          <p key={index} className="text-xs sm:text-sm leading-relaxed text-slate-700 break-words">{item}</p>
+        )) : <p className="text-xs sm:text-sm text-slate-500">{emptyMessage}</p>}
       </div>
     </div>
   );
@@ -646,9 +646,9 @@ function ReviewList({ title, items, emptyMessage }: { title: string; items: stri
 
 function SpeechStat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-[1.25rem] border border-slate-100 bg-white p-4 shadow-sm transition-all hover:bg-slate-50 duration-300 ease-emil-out">
-      <p className="text-xs font-bold uppercase tracking-[0.22em] text-slate-400">{label}</p>
-      <p className="mt-2 text-2xl font-extrabold text-slate-900">{value}</p>
+    <div className="rounded-xl sm:rounded-[1.25rem] border border-slate-100 bg-white p-3 sm:p-4 shadow-sm transition-all hover:bg-slate-50 duration-300 ease-emil-out">
+      <p className="text-[10px] sm:text-xs font-bold uppercase tracking-[0.2em] text-slate-400 truncate">{label}</p>
+      <p className="mt-1.5 sm:mt-2 text-lg sm:text-2xl font-extrabold text-slate-900 truncate">{value}</p>
     </div>
   );
 }
